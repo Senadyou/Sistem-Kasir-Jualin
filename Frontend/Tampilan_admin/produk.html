@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - Jualin</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body {
+  margin: 0;
+  background-color: #d4f5d1;
+}
+
+/* Sidebar */
+#sidebar {
+  width: 220px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+}
+
+.main-content {
+  margin-left: 220px;
+  padding: 20px;
+}
+
+.navbar-dashboard {
+  background-color: #4CAF50;
+  color: white;
+  border-radius: 10px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+}
+
+.navbar-dashboard h2 {
+  margin: 0;
+  font-weight: bold;
+}
+
+.btn-tambah {
+  background-color: #e6d600;
+  color: #000;
+  font-weight: bold;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+}
+
+.table thead {
+  background-color: #388e3c;
+  color: white;
+}
+
+.produk-img {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* ========================= */
+/* MODE MOBILE RESPONSIVE */
+/* ========================= */
+
+@media (max-width: 768px) {
+
+  #sidebar { display: none; }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding: 15px;
+  }
+
+  .navbar-dashboard {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+
+  /* Ubah tabel jadi card */
+  table thead {
+    display: none;
+  }
+
+  table, table tbody, table tr, table td {
+    display: block;
+    width: 100%;
+  }
+
+  table tr {
+    background: #ffffff;
+    margin-bottom: 15px;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  }
+
+  table td {
+    text-align: left;
+    padding: 6px 0;
+    border: none;
+  }
+
+  table td::before {
+    content: attr(data-label);
+    font-weight: bold;
+    color: #2e7d32;
+    display: block;
+  }
+
+  table td:last-child {
+    margin-top: 10px;
+  }
+
+  .produk-img {
+    width: 100%;
+    height: auto;
+    max-width: 100px;
+  }
+
+  td .btn {
+    width: 100%;
+  }
+}
+</style>
+</head>
+<body>
+
+  <!-- Sidebar Desktop -->
+  <div id="sidebar" class="d-none d-md-block bg-success text-white p-3">
+    <h4 class="fw-bold">
+      <img src="http://localhost/Projek_jualin_v0.1/Frontend/assets/img/logo2.png" width="32" height="32" class="me-2">Jualin
+    </h4>
+    <hr>
+    <ul class="nav nav-pills flex-column mb-auto">
+      <li><a href="produk.html"       class="nav-link text-white active">📦 Produk</a></li>
+      <li><a href="user.html"         class="nav-link text-white">👤 User</a></li>
+      <li><a href="laporan.html"      class="nav-link text-white">📑 Laporan</a></li>
+      <li><a href="bahan_baku.html"   class="nav-link text-white">🧪 Bahan Baku</a></li>
+      <li><a href="resep_produk.html" class="nav-link text-white ">🍳 Resep Produk</a></li>
+      <li><a href="http://localhost/Projek_jualin_v0.1/Frontend/login.html" class="nav-link text-danger fw-bold">🚪 Logout</a></li>
+    </ul>
+  </div>
+
+  <!-- Navbar Mobile -->
+  <nav class="navbar bg-success d-md-none px-3 py-2">
+    <button class="btn btn-light btn-sm" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">☰ Menu</button>
+    <span class="text-white fw-bold ms-2">
+      <img src="http://localhost/Projek_jualin_v0.1/Frontend/assets/img/logo2.png" width="26" height="26" class="me-1">Jualin
+    </span>
+  </nav>
+
+  <!-- Offcanvas Mobile -->
+  <div class="offcanvas offcanvas-start text-bg-success" id="mobileSidebar">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title"><img src="http://localhost/Projek_jualin_v0.1/Frontend/assets/img/logo2.png" width="28" height="28" class="me-2">Jualin</h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+      <ul class="nav nav-pills flex-column">
+        <li><a href="produk.html"       class="nav-link text-white active">📦 Produk</a></li>
+        <li><a href="user.html"         class="nav-link text-white">👤 User</a></li>
+        <li><a href="laporan.html"      class="nav-link text-white">📑 Laporan</a></li>
+        <li><a href="bahan_baku.html"   class="nav-link text-white">🧪 Bahan Baku</a></li>
+        <li><a href="resep_produk.html" class="nav-link text-white ">🍳 Resep Produk</a></li>
+        <li><a href="../login.html"     class="nav-link text-danger fw-bold">🚪 Logout</a></li>
+      </ul>
+    </div>
+  </div>
+  
+  <!-- Konten utama -->
+  <div class="main-content">
+    <div class="container-fluid py-4">
+      <!-- HEADER -->
+      <div class="navbar-dashboard d-flex justify-content-between align-items-center">
+        <h2>📦 Produk Jualin</h2>
+        <a href="tambah_produk.html" class="btn btn-tambah">➕ Tambah Produk</a>
+      </div>
+
+      <!-- TABEL PRODUK -->
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+            <h5 class="fw-bold text-success">Daftar Produk</h5>
+            <input type="text" id="searchInput" class="form-control w-100 w-md-25 mt-2 mt-md-0" placeholder="🔍 Cari produk...">
+          </div>
+          <div class="table-responsive">
+            <table class="table table-striped align-middle text-center">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Gambar</th>
+                  <th>Nama Produk</th>
+                  <th>Harga Modal</th>
+                  <th>Harga Jual</th>
+                  <th>Stok</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="produkTable">
+                <tr>
+                  <td colspan="7">⏳ Memuat data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Konfirmasi Hapus -->
+      <div class="modal fade" id="hapusModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title">Konfirmasi Hapus</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">Apakah Anda yakin ingin menghapus produk ini?</div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+              <button type="button" class="btn btn-danger" id="btnConfirmHapus">Ya, Hapus</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+    let allProduk = [];
+    let kodeHapus = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+    const nama = sessionStorage.getItem("admin_nama");
+    if (!nama) {
+      window.location.href = "http://localhost/Projek_jualin_v0.1/Frontend/login.html";
+    }
+  });
+
+  function logout() {
+    sessionStorage.removeItem("admin_id");
+    sessionStorage.removeItem("admin_nama");
+    sessionStorage.removeItem("admin_role");
+    sessionStorage.removeItem("admin_id_toko");
+    sessionStorage.removeItem("admin_token");
+    window.location.href = "http://localhost/Projek_jualin_v0.1/Frontend/login.html";
+  }
+
+    async function loadProduk() {
+      try {
+        // ✅ Kirim id_toko agar hanya tampil produk toko sendiri
+        const id_toko = sessionStorage.getItem("admin_id_toko");
+        const url = id_toko
+          ? `http://localhost/Projek_jualin_v0.1/Backend/produk/lihat_produk.php?id_toko=${id_toko}`
+          : `http://localhost/Projek_jualin_v0.1/Backend/produk/lihat_produk.php`;
+        const res = await fetch(url);
+        const data = await res.json();
+        allProduk = data;
+        renderTable(data);
+      } catch (error) {
+        document.getElementById("produkTable").innerHTML = `
+          <tr><td colspan="7" class="text-danger">⚠️ Gagal memuat data produk</td></tr>`;
+      }
+    }
+
+    function renderTable(data) {
+  const table = document.getElementById("produkTable");
+  table.innerHTML = "";
+
+  if (!data || data.length === 0) {
+    table.innerHTML = `<tr><td colspan="7">📭 Tidak ada produk</td></tr>`;
+    return;
+  }
+
+  data.forEach(p => {
+    const imgPath = p.GAMBAR 
+      ? `http://localhost/Projek_jualin_v0.1/Backend/uploads/produk/${p.GAMBAR}`
+      : "http://localhost/Projek_jualin_v0.1/Frontend/assets/img/logo.png";
+
+    table.innerHTML += `
+      <tr>
+        <td data-label="ID">${p.KODE_PRODUK}</td>
+        <td data-label="Gambar">
+          <img src="${imgPath}" alt="${p.NAMA_PRODUK}" class="produk-img">
+        </td>
+        <td data-label="Nama Produk">${p.NAMA_PRODUK}</td>
+        <td data-label="Harga Modal">
+          Rp ${parseInt(p.HARGA_MODAL).toLocaleString("id-ID")}
+        </td>
+        <td data-label="Harga Jual">
+          Rp ${parseInt(p.HARGA_JUAL).toLocaleString("id-ID")}
+        </td>
+        <td data-label="Stok">${p.STOK}</td>
+        <td data-label="Aksi">
+          <div class="d-flex flex-column gap-2">
+            <a href="edit_produk.html?id=${p.KODE_PRODUK}" 
+               class="btn btn-warning btn-sm">✏️ Edit</a>
+            <button class="btn btn-danger btn-sm" 
+               onclick="showHapusModal(${p.KODE_PRODUK})">🗑️ Hapus</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+    function showHapusModal(kode) {
+      kodeHapus = kode;
+      const modal = new bootstrap.Modal(document.getElementById("hapusModal"));
+      modal.show();
+    }
+
+    document.getElementById("btnConfirmHapus").addEventListener("click", async () => {
+      if (!kodeHapus) return;
+      try {
+        // ✅ Kirim id_toko saat hapus untuk keamanan
+        const id_toko = sessionStorage.getItem("admin_id_toko");
+        const res = await fetch("http://localhost/Projek_jualin_v0.1/Backend/produk/hapus_produk.php", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ KODE_PRODUK: kodeHapus, id_toko: id_toko })
+        });
+        const result = await res.json();
+        if (result.status) {
+          Swal.fire("Berhasil!", "Produk berhasil dihapus", "success");
+          loadProduk();
+        } else {
+          Swal.fire("Gagal!", result.message || "Terjadi kesalahan", "error");
+        }
+      } catch {
+        Swal.fire("Error!", "⚠️ Tidak bisa terhubung ke server", "error");
+      }
+      bootstrap.Modal.getInstance(document.getElementById("hapusModal")).hide();
+    });
+
+    document.getElementById("searchInput").addEventListener("input", function() {
+      const keyword = this.value.toLowerCase();
+      const filtered = allProduk.filter(p => p.NAMA_PRODUK.toLowerCase().includes(keyword));
+      renderTable(filtered);
+    });
+
+    loadProduk();
+  </script>
+</body>
+</html>

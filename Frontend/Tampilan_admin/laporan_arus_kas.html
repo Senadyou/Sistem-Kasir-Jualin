@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arus Kas - Jualin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    :root {
+      --green-deep:   #1a4731;
+      --green-mid:    #2e7d32;
+      --green-bright: #43a047;
+      --green-light:  #e8f5e9;
+      --green-pale:   #d4f5d1;
+      --red:          #c62828;
+      --red-light:    #ffebee;
+      --blue:         #1565c0;
+      --blue-light:   #e3f2fd;
+      --text-dark:    #1a2e1a;
+      --text-mid:     #4a6741;
+      --text-muted:   #8faa8b;
+      --radius:       16px;
+      --shadow:       0 4px 20px rgba(26,71,49,0.10);
+      --shadow-lg:    0 8px 32px rgba(26,71,49,0.18);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--green-pale);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--text-dark);
+    }
+
+    /* SIDEBAR */
+    #sidebar { width:220px; position:fixed; top:0; left:0; height:100vh; background:var(--green-deep); z-index:100; }
+    .main-content { margin-left:220px; min-height:100vh; padding-bottom:60px; }
+
+    /* HERO */
+    .hero-header {
+      background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 60%, var(--green-bright) 100%);
+      padding: 28px 32px 76px;
+      position: relative; overflow: hidden;
+    }
+    .hero-header::before {
+      content:''; position:absolute; top:-50px; right:-50px;
+      width:240px; height:240px; border-radius:50%;
+      background:rgba(255,255,255,0.04);
+    }
+    .hero-header::after {
+      content:''; position:absolute; bottom:-70px; left:15%;
+      width:380px; height:180px; border-radius:50%;
+      background:rgba(255,255,255,0.03);
+    }
+    .hero-title { font-size:22px; font-weight:800; color:#fff; margin:0; display:flex; align-items:center; gap:10px; }
+    .hero-sub   { font-size:13px; color:rgba(255,255,255,0.65); margin-top:3px; }
+    .btn-hero {
+      background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25);
+      color:#fff; font-size:13px; font-weight:600; border-radius:10px; padding:7px 16px;
+      backdrop-filter:blur(8px); transition:background 0.2s; text-decoration:none;
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .btn-hero:hover { background:rgba(255,255,255,0.25); color:#fff; }
+
+    /* SUMMARY CARDS */
+    .summary-row {
+      display:grid; grid-template-columns:repeat(3,1fr);
+      gap:16px; padding:0 32px; margin-top:-52px; position:relative; z-index:10;
+    }
+    .sum-card {
+      background:rgba(255,255,255,0.94); backdrop-filter:blur(16px);
+      border-radius:var(--radius); padding:18px 20px;
+      box-shadow:var(--shadow-lg); border-top:4px solid transparent;
+      animation:slideUp 0.4s ease both;
+    }
+    .sum-card:nth-child(1){border-top-color:var(--green-bright);animation-delay:.05s}
+    .sum-card:nth-child(2){border-top-color:var(--red);animation-delay:.12s}
+    .sum-card:nth-child(3){border-top-color:var(--blue);animation-delay:.19s}
+    .sum-icon {
+      width:38px; height:38px; border-radius:10px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:18px; margin-bottom:10px;
+    }
+    .sum-icon.green { background:var(--green-light); }
+    .sum-icon.red   { background:var(--red-light); }
+    .sum-icon.blue  { background:var(--blue-light); }
+    .sum-label { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; }
+    .sum-val   { font-size:20px; font-weight:800; color:var(--text-dark); line-height:1.1; margin-top:4px; }
+    .sum-val.red  { color:var(--red); }
+    .sum-val.blue { color:var(--blue); }
+
+    /* CONTENT */
+    .content-area { padding:28px 32px 0; }
+
+    /* FORM CARD */
+    .form-card {
+      background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
+      overflow:hidden; margin-bottom:24px;
+      animation:slideUp 0.4s ease 0.25s both;
+    }
+    .form-card-header {
+      background:linear-gradient(90deg,var(--green-light),#fff);
+      padding:13px 22px; border-bottom:1px solid #e8f5e9;
+      display:flex; align-items:center; gap:8px;
+      font-weight:700; font-size:14px; color:var(--green-mid);
+    }
+    .form-card-body { padding:18px 22px; }
+    .form-label-custom {
+      font-size:11px; font-weight:700; color:var(--text-muted);
+      text-transform:uppercase; letter-spacing:.4px;
+      margin-bottom:5px; display:block;
+    }
+    .form-control, .form-select {
+      border:1.5px solid #dceede; border-radius:10px;
+      font-size:13px; font-family:'Plus Jakarta Sans',sans-serif;
+      padding:9px 13px; transition:border-color .2s, box-shadow .2s;
+    }
+    .form-control:focus,.form-select:focus {
+      border-color:var(--green-bright);
+      box-shadow:0 0 0 3px rgba(67,160,71,.12);
+    }
+    .btn-tambah {
+      background:linear-gradient(135deg,var(--green-bright),var(--green-mid));
+      color:#fff; border:none; border-radius:10px;
+      font-size:13px; font-weight:700; padding:10px 20px; width:100%;
+      transition:opacity .2s, transform .1s;
+      font-family:'Plus Jakarta Sans',sans-serif; cursor:pointer;
+    }
+    .btn-tambah:hover  { opacity:.92; }
+    .btn-tambah:active { transform:scale(.97); }
+
+    /* TRX CARD */
+    .trx-card {
+      background:#fff; border-radius:var(--radius);
+      box-shadow:var(--shadow); overflow:hidden;
+      animation:slideUp 0.4s ease 0.32s both;
+    }
+    .trx-header {
+      padding:16px 22px; border-bottom:1px solid #f0f7f0;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .trx-title { font-weight:700; font-size:15px; color:var(--text-dark); }
+    .trx-count {
+      background:var(--green-light); color:var(--green-mid);
+      font-size:11px; font-weight:700; border-radius:20px; padding:3px 10px;
+    }
+    .filter-bar {
+      padding:10px 22px; border-bottom:1px solid #f0f7f0;
+      display:flex; gap:8px; flex-wrap:wrap;
+    }
+    .filter-chip {
+      border:1.5px solid #d0e8d0; background:#fff;
+      color:var(--text-mid); font-size:12px; font-weight:600;
+      border-radius:20px; padding:5px 14px; cursor:pointer;
+      transition:.15s; font-family:'Plus Jakarta Sans',sans-serif;
+    }
+    .filter-chip.active { background:var(--green-mid); color:#fff; border-color:var(--green-mid); }
+    .filter-chip:hover:not(.active) { border-color:var(--green-mid); color:var(--green-mid); }
+
+    /* TRX ITEM */
+    .trx-item {
+      display:flex; align-items:center; gap:14px;
+      padding:14px 22px; border-bottom:1px solid #f5faf5;
+      transition:background .15s; animation:fadeIn .3s ease both;
+    }
+    .trx-item:last-child { border-bottom:none; }
+    .trx-item:hover { background:#fafff9; }
+    .trx-dot {
+      width:42px; height:42px; border-radius:12px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:18px; flex-shrink:0;
+    }
+    .trx-dot.masuk  { background:var(--green-light); }
+    .trx-dot.keluar { background:var(--red-light); }
+    .trx-dot.auto   { background:#fff8e1; }
+    .trx-info { flex:1; min-width:0; }
+    .trx-keterangan {
+      font-size:14px; font-weight:600; color:var(--text-dark);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .trx-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    .trx-badge {
+      font-size:10px; font-weight:700; border-radius:6px;
+      padding:2px 7px; margin-left:6px;
+    }
+    .trx-badge.masuk  { background:var(--green-light); color:var(--green-mid); }
+    .trx-badge.keluar { background:var(--red-light); color:var(--red); }
+    .trx-badge.auto   { background:#fff8e1; color:#e65100; }
+    .trx-jumlah { font-size:15px; font-weight:800; flex-shrink:0; text-align:right; }
+    .trx-jumlah.masuk  { color:var(--green-mid); }
+    .trx-jumlah.keluar { color:var(--red); }
+    .trx-del {
+      background:none; border:none; color:#ccc; font-size:16px;
+      cursor:pointer; padding:4px 8px; border-radius:8px;
+      transition:.15s; flex-shrink:0;
+    }
+    .trx-del:hover { background:var(--red-light); color:var(--red); }
+
+    .empty-state { padding:48px 24px; text-align:center; color:var(--text-muted); }
+    .empty-state .empty-icon { font-size:48px; margin-bottom:12px; }
+
+    .shimmer {
+      background:linear-gradient(90deg,#f0f7f0 25%,#e8f5e9 50%,#f0f7f0 75%);
+      background-size:200% 100%; animation:shimmer 1.2s infinite;
+      border-radius:8px; height:16px; margin:6px 0;
+    }
+
+    /* ANIMATIONS */
+    @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* ── MOBILE ── */
+    @media (max-width:768px) {
+      #sidebar { display:none; }
+      .main-content { margin-left:0; }
+      .hero-header { padding:14px 16px 70px; }
+      .hero-title  { font-size:17px; }
+      .summary-row {
+        grid-template-columns:1fr 1fr; gap:10px;
+        padding:0 14px; margin-top:-46px;
+      }
+      .sum-card:nth-child(3) { grid-column:1/-1; }
+      .sum-val { font-size:16px; }
+      .content-area { padding:16px 14px 0; }
+      .trx-item  { padding:12px 14px; gap:10px; }
+      .trx-dot   { width:38px; height:38px; font-size:16px; border-radius:10px; }
+      .trx-keterangan { font-size:13px; }
+      .trx-jumlah     { font-size:14px; }
+      .filter-bar  { padding:10px 14px; }
+      .trx-header  { padding:13px 14px; }
+      .form-desktop { display:none !important; }
+      .form-mobile  { display:block !important; }
+
+      /* FAB */
+      .fab {
+        display:flex !important; position:fixed;
+        bottom:24px; right:20px; z-index:999;
+        width:56px; height:56px;
+        background:linear-gradient(135deg,var(--green-bright),var(--green-mid));
+        border-radius:50%; border:none;
+        box-shadow:0 6px 20px rgba(46,125,50,.40);
+        color:#fff; font-size:28px; line-height:1;
+        align-items:center; justify-content:center;
+        cursor:pointer; transition:transform .2s;
+        font-family:'Plus Jakarta Sans',sans-serif;
+      }
+      .fab:active { transform:scale(.90); }
+
+      /* Bottom sheet */
+      .form-sheet-backdrop {
+        display:none; position:fixed; inset:0;
+        background:rgba(0,0,0,0.45); z-index:1000;
+        animation:fadeIn .2s ease;
+      }
+      .form-sheet-backdrop.open { display:block; }
+      .form-sheet {
+        position:fixed; bottom:0; left:0; right:0;
+        background:#fff; border-radius:24px 24px 0 0;
+        padding:0 0 36px; z-index:1001;
+        transform:translateY(100%);
+        transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+        max-height:92vh; overflow-y:auto;
+      }
+      .form-sheet.open { transform:translateY(0); }
+      .sheet-handle {
+        width:40px; height:4px; border-radius:2px;
+        background:#ddd; margin:12px auto 0;
+      }
+      .sheet-title { font-size:16px; font-weight:800; color:var(--text-dark); padding:14px 20px 6px; }
+      .sheet-body  { padding:0 20px; }
+      .sheet-close {
+        position:absolute; top:14px; right:16px;
+        background:#f0f0f0; border:none; border-radius:50%;
+        width:30px; height:30px; font-size:15px;
+        display:flex; align-items:center; justify-content:center;
+        cursor:pointer; color:#666;
+      }
+    }
+    @media (min-width:769px) {
+      .fab,.form-sheet-backdrop,.form-sheet { display:none !important; }
+      .form-desktop { display:block; }
+      .form-mobile  { display:none; }
+    }
+
+    /* Mobile navbar */
+    .m-navbar {
+      background:var(--green-deep); padding:12px 16px;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .m-navbar-brand {
+      font-weight:800; font-size:16px; color:#fff;
+      display:flex; align-items:center; gap:8px;
+    }
+    .m-menu-btn {
+      background:rgba(255,255,255,.15); border:none;
+      color:#fff; border-radius:8px; padding:6px 12px;
+      font-size:13px; font-weight:600;
+      font-family:'Plus Jakarta Sans',sans-serif; cursor:pointer;
+    }
+    .tipe-btn {
+      border:2px solid #dceede; background:#fff;
+      color:var(--text-mid); font-size:13px; font-weight:600;
+      border-radius:10px; padding:10px; cursor:pointer;
+      transition:.15s; font-family:'Plus Jakarta Sans',sans-serif;
+      width:100%;
+    }
+    .tipe-btn.active {
+      border-color:var(--green-bright); background:var(--green-light); color:var(--green-mid);
+    }
+    .tipe-btn.active-red {
+      border-color:var(--red); background:var(--red-light); color:var(--red);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR DESKTOP -->
+  <div id="sidebar" class="d-none d-md-block p-3">
+    <h4 class="fw-bold text-white mt-1">
+      <img src="http://localhost/Projek_jualin_v0.1/Frontend/assets/img/logo2.png" width="28" height="28" class="me-2">Jualin
+    </h4>
+    <hr style="border-color:rgba(255,255,255,.15)">
+    <ul class="nav nav-pills flex-column mb-auto">
+      <li><a href="produk.html"  class="nav-link text-white">📦 Produk</a></li>
+      <li><a href="user.html"    class="nav-link text-white">👤 User</a></li>
+      <li><a href="laporan.html" class="nav-link text-white active">📑 Laporan</a></li>
+      <li><a href="http://localhost/Projek_jualin_v0.1/Frontend/login.html" class="nav-link text-danger fw-bold">🚪 Logout</a></li>
+    </ul>
+  </div>
+
+  <!-- NAVBAR MOBILE -->
+  <nav class="m-navbar d-md-none">
+    <button class="m-menu-btn" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">☰ Menu</button>
+    <div class="m-navbar-brand">
+      <img src="http://localhost/Projek_jualin_v0.1/Frontend/assets/img/logo2.png" width="24" height="24">Jualin
+    </div>
+  </nav>
+
+  <!-- Offcanvas Mobile -->
+  <div class="offcanvas offcanvas-start text-bg-success" id="mobileSidebar">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title fw-bold">
+        <img src="http://localhost/Projek_jualin_v0.1/Frontend/assets/img/logo2.png" width="28" height="28" class="me-2">Jualin
+      </h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+      <ul class="nav nav-pills flex-column">
+        <li><a href="produk.html"  class="nav-link text-white">📦 Produk</a></li>
+        <li><a href="user.html"    class="nav-link text-white">👤 User</a></li>
+        <li><a href="laporan.html" class="nav-link text-white active">📑 Laporan</a></li>
+        <li><a href="../login.html" class="nav-link text-danger fw-bold">🚪 Logout</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- HERO HEADER -->
+    <div class="hero-header">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="hero-title">💶 Arus Kas</div>
+          <div class="hero-sub">Pantau pemasukan &amp; pengeluaran toko Anda</div>
+        </div>
+        <div>
+          <a href="laporan.html" class="btn-hero">← Kembali</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUMMARY CARDS (floating) -->
+    <div class="summary-row">
+      <div class="sum-card">
+        <div class="sum-icon green">💚</div>
+        <div class="sum-label">Total Pemasukan</div>
+        <div class="sum-val" id="ringkasan-masuk">—</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-icon red">🔴</div>
+        <div class="sum-label">Total Pengeluaran</div>
+        <div class="sum-val red" id="ringkasan-keluar">—</div>
+      </div>
+      <div class="sum-card">
+        <div class="sum-icon blue">💎</div>
+        <div class="sum-label">Saldo / Modal</div>
+        <div class="sum-val blue" id="ringkasan-saldo">—</div>
+      </div>
+    </div>
+
+    <!-- CONTENT AREA -->
+    <div class="content-area">
+
+      <!-- FORM TAMBAH — DESKTOP -->
+      <div class="form-card form-desktop">
+        <div class="form-card-header">➕ Tambah Transaksi</div>
+        <div class="form-card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-2">
+              <label class="form-label-custom">Tanggal</label>
+              <input type="date" id="tanggal" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label-custom">Keterangan</label>
+              <input type="text" id="keterangan" class="form-control" placeholder="Contoh: Beli stok, Bayar listrik...">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label-custom">Tipe</label>
+              <select id="tipe" class="form-select">
+                <option value="Pemasukan">💚 Pemasukan</option>
+                <option value="Pengeluaran">🔴 Pengeluaran</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label-custom">Jumlah (Rp)</label>
+              <input type="number" id="jumlah" class="form-control" placeholder="0">
+            </div>
+            <div class="col-md-2">
+              <button class="btn-tambah" onclick="tambahKas()">Simpan</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSAKSI LIST -->
+      <div class="trx-card">
+        <div class="trx-header">
+          <span class="trx-title">📋 Riwayat Transaksi</span>
+          <span class="trx-count" id="trxCount">—</span>
+        </div>
+        <div class="filter-bar">
+          <button class="filter-chip active" onclick="setFilter('semua',this)">Semua</button>
+          <button class="filter-chip" onclick="setFilter('Pemasukan',this)">💚 Pemasukan</button>
+          <button class="filter-chip" onclick="setFilter('Pengeluaran',this)">🔴 Pengeluaran</button>
+        </div>
+        <div id="trxList">
+          <div style="padding:16px 22px">
+            <div class="shimmer" style="width:60%"></div>
+            <div class="shimmer" style="width:40%;margin-top:8px;height:12px"></div>
+          </div>
+          <div style="padding:0 22px 16px">
+            <div class="shimmer" style="width:70%"></div>
+            <div class="shimmer" style="width:45%;margin-top:8px;height:12px"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FAB MOBILE -->
+  <button class="fab" onclick="openSheet()">＋</button>
+
+  <!-- BOTTOM SHEET FORM (mobile) -->
+  <div class="form-sheet-backdrop" id="sheetBackdrop" onclick="closeSheet()"></div>
+  <div class="form-sheet" id="formSheet">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+    <div class="sheet-title">➕ Tambah Transaksi</div>
+    <div class="sheet-body">
+      <div class="mb-3">
+        <label class="form-label-custom">Tanggal</label>
+        <input type="date" id="tanggal_m" class="form-control">
+      </div>
+      <div class="mb-3">
+        <label class="form-label-custom">Keterangan</label>
+        <input type="text" id="keterangan_m" class="form-control" placeholder="Contoh: Beli stok, Bayar listrik...">
+      </div>
+      <div class="mb-3">
+        <label class="form-label-custom">Tipe</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="tipe-btn active" id="btnMasuk"  onclick="setTipeMobile('Pemasukan')">💚 Pemasukan</button>
+          <button class="tipe-btn"        id="btnKeluar" onclick="setTipeMobile('Pengeluaran')">🔴 Pengeluaran</button>
+        </div>
+        <input type="hidden" id="tipe_m" value="Pemasukan">
+      </div>
+      <div class="mb-4">
+        <label class="form-label-custom">Jumlah (Rp)</label>
+        <input type="number" id="jumlah_m" class="form-control" placeholder="Masukkan nominal...">
+      </div>
+      <button class="btn-tambah" onclick="tambahKasMobile()">Simpan Transaksi</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API_URL = "http://localhost/Projek_jualin_v0.1/Backend/laporan/arus_kas/";
+    const id_toko = sessionStorage.getItem("admin_id_toko");
+    if (!id_toko) window.location.href = "http://localhost/Projek_jualin_v0.1/Frontend/login.html";
+
+    let allData      = [];
+    let activeFilter = 'semua';
+
+    async function loadKas() {
+      try {
+        const res = await axios.get(API_URL + `get_all.php?id_toko=${id_toko}`);
+        allData = res.data || [];
+        renderList(allData);
+        loadSaldo();
+      } catch (err) {
+        document.getElementById("trxList").innerHTML =
+          `<div class="empty-state"><div class="empty-icon">⚠️</div><p class="text-danger">Gagal memuat data</p></div>`;
+      }
+    }
+
+    function renderList(data) {
+      const el = document.getElementById("trxList");
+      document.getElementById("trxCount").textContent = data.length + " entri";
+      if (!data || data.length === 0) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>Belum ada transaksi</p></div>`;
+        return;
+      }
+      // Urutkan: id terbesar (terbaru) di atas
+      const sorted = [...data].sort((a, b) => b.id - a.id);
+      el.innerHTML = sorted.map((r, i) => {
+        const isMasuk = r.tipe === 'Pemasukan';
+        const isAuto  = r.sumber === 'penjualan';
+        const cls     = isAuto ? 'auto' : (isMasuk ? 'masuk' : 'keluar');
+        const icon    = isAuto ? '🛒' : (isMasuk ? '💚' : '🔴');
+        const sign    = isMasuk ? '+' : '−';
+        const fmt     = new Intl.NumberFormat("id-ID").format(r.jumlah);
+        return `
+          <div class="trx-item" style="animation-delay:${i * 0.03}s">
+            <div class="trx-dot ${cls}">${icon}</div>
+            <div class="trx-info">
+              <div class="trx-keterangan">${r.keterangan}
+                <span class="trx-badge ${cls}">${isAuto ? 'Otomatis' : r.tipe}</span>
+              </div>
+              <div class="trx-meta">📅 ${r.tanggal}</div>
+            </div>
+            <div class="trx-jumlah ${cls}">${sign} Rp ${fmt}</div>
+            ${isAuto
+              ? `<button class="trx-del" disabled title="Tidak bisa dihapus">🔒</button>`
+              : `<button class="trx-del" onclick="hapusKas(${r.id})" title="Hapus">🗑️</button>`}
+          </div>`;
+      }).join("");
+    }
+
+    function setFilter(tipe, btn) {
+      activeFilter = tipe;
+      document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filtered = tipe === 'semua' ? allData : allData.filter(r => r.tipe === tipe);
+      renderList(filtered);
+    }
+
+    async function loadSaldo() {
+      try {
+        const res = await axios.get(API_URL + `get_saldo.php?id_toko=${id_toko}`);
+        const d   = res.data;
+        const fmt = v => "Rp " + new Intl.NumberFormat("id-ID").format(v);
+        animateCount("ringkasan-masuk",  d.kas_masuk,  fmt);
+        animateCount("ringkasan-keluar", d.kas_keluar, fmt);
+        animateCount("ringkasan-saldo",  d.saldo,      fmt);
+      } catch(e) {}
+    }
+
+    function animateCount(id, target, fmtFn) {
+      const el = document.getElementById(id);
+      const n  = parseFloat(target) || 0;
+      const steps = 28; let i = 0;
+      const timer = setInterval(() => {
+        i++; el.textContent = fmtFn(Math.round((i / steps) * n));
+        if (i >= steps) { el.textContent = fmtFn(n); clearInterval(timer); }
+      }, 25);
+    }
+
+    async function tambahKas() {
+      const tanggal    = document.getElementById("tanggal").value;
+      const keterangan = document.getElementById("keterangan").value.trim();
+      const tipe       = document.getElementById("tipe").value;
+      const jumlah     = document.getElementById("jumlah").value;
+      await _simpanKas(tanggal, keterangan, tipe, jumlah, () => {
+        document.getElementById("tanggal").value    = "";
+        document.getElementById("keterangan").value = "";
+        document.getElementById("jumlah").value     = "";
+      });
+    }
+
+    async function tambahKasMobile() {
+      const tanggal    = document.getElementById("tanggal_m").value;
+      const keterangan = document.getElementById("keterangan_m").value.trim();
+      const tipe       = document.getElementById("tipe_m").value;
+      const jumlah     = document.getElementById("jumlah_m").value;
+      await _simpanKas(tanggal, keterangan, tipe, jumlah, () => {
+        document.getElementById("tanggal_m").value    = "";
+        document.getElementById("keterangan_m").value = "";
+        document.getElementById("jumlah_m").value     = "";
+        setTipeMobile("Pemasukan");
+        closeSheet();
+      });
+    }
+
+    async function _simpanKas(tanggal, keterangan, tipe, jumlah, onSuccess) {
+      if (!tanggal || !keterangan || !jumlah) {
+        Swal.fire({ icon:"warning", title:"Data belum lengkap",
+          text:"Isi semua field sebelum menyimpan!", confirmButtonColor:"#2e7d32" });
+        return;
+      }
+      try {
+        const res  = await fetch(API_URL + "create.php", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ id_toko, tanggal, keterangan, tipe, jumlah })
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          Swal.fire({ icon:"success", title:"Berhasil!",
+            text:"Transaksi berhasil ditambahkan", confirmButtonColor:"#2e7d32",
+            timer:1800, showConfirmButton:false });
+          onSuccess(); loadKas();
+        } else {
+          Swal.fire({ icon:"error", title:"Gagal",
+            text:data.message||"Terjadi kesalahan", confirmButtonColor:"#d33" });
+        }
+      } catch(err) {
+        Swal.fire({ icon:"error", title:"Error", text:"Error: "+err, confirmButtonColor:"#d33" });
+      }
+    }
+
+    async function hapusKas(id) {
+      const result = await Swal.fire({
+        title:"Hapus transaksi ini?",
+        text:"Data tidak bisa dikembalikan setelah dihapus.",
+        icon:"warning", showCancelButton:true,
+        confirmButtonColor:"#c62828", cancelButtonColor:"#78909c",
+        confirmButtonText:"Hapus", cancelButtonText:"Batal"
+      });
+      if (!result.isConfirmed) return;
+      try {
+        const res  = await fetch(API_URL + `delete.php?id=${id}&id_toko=${id_toko}`);
+        const data = await res.json();
+        if (data.status === "success") {
+          Swal.fire({ icon:"success", title:"Terhapus",
+            text:"Data berhasil dihapus", confirmButtonColor:"#2e7d32",
+            timer:1600, showConfirmButton:false });
+          loadKas();
+        } else {
+          Swal.fire({ icon:"error", title:"Gagal",
+            text:data.message||"Tidak bisa menghapus", confirmButtonColor:"#d33" });
+        }
+      } catch(err) {
+        Swal.fire({ icon:"error", title:"Error", text:"Error: "+err, confirmButtonColor:"#d33" });
+      }
+    }
+
+    function openSheet() {
+      document.getElementById("sheetBackdrop").classList.add("open");
+      document.getElementById("formSheet").classList.add("open");
+      document.body.style.overflow = "hidden";
+    }
+    function closeSheet() {
+      document.getElementById("sheetBackdrop").classList.remove("open");
+      document.getElementById("formSheet").classList.remove("open");
+      document.body.style.overflow = "";
+    }
+    function setTipeMobile(tipe) {
+      document.getElementById("tipe_m").value = tipe;
+      const isMasuk = tipe === "Pemasukan";
+      document.getElementById("btnMasuk").className  = "tipe-btn" + (isMasuk  ? " active" : "");
+      document.getElementById("btnKeluar").className = "tipe-btn" + (!isMasuk ? " active-red" : "");
+    }
+
+    loadKas();
+  </script>
+</body>
+</html>

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kelola Bahan Baku - Jualin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    body { margin:0; background-color:#d4f5d1; }
+    #sidebar { width:220px; position:fixed; top:0; left:0; height:100vh; }
+    .main-content { margin-left:220px; padding:15px 25px; max-width:calc(100% - 220px); }
+    .navbar-dashboard { background-color:#4CAF50; color:white; border-radius:10px; padding:15px 20px; margin-bottom:20px; }
+    .navbar-dashboard h2 { margin:0; font-weight:bold; }
+    .table thead { background-color:#388e3c; color:white; }
+
+    /* Stat cards */
+    .stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
+    .stat-box { background:#fff; border-radius:14px; padding:18px 20px; box-shadow:0 2px 12px rgba(56,142,60,0.10); border-left:5px solid #4CAF50; display:flex; flex-direction:column; gap:4px; }
+    .stat-box.b2 { border-left-color:#F57C00; }
+    .stat-box.b3 { border-left-color:#c62828; }
+    .stat-box-icon  { font-size:26px; line-height:1; }
+    .stat-box-label { font-size:11px; color:#666; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+    .stat-box-val   { font-size:22px; font-weight:800; color:#1b5e20; line-height:1.1; margin-top:2px; }
+    .stat-box-val.warn { color:#F57C00; }
+    .stat-box-val.danger { color:#c62828; }
+
+    /* Form card */
+    .form-card { background:#fff; border-radius:14px; padding:22px; box-shadow:0 2px 12px rgba(56,142,60,0.10); margin-bottom:24px; }
+    .form-card-title { font-weight:700; font-size:15px; color:#2e7d32; margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid #e8f5e9; }
+    .form-control:focus, .form-select:focus { border-color:#4CAF50; box-shadow:0 0 0 3px rgba(76,175,80,0.15); }
+
+    /* Tabel */
+    .tabel-card { background:#fff; border-radius:14px; padding:22px; box-shadow:0 2px 12px rgba(56,142,60,0.10); }
+    .badge-aman    { background:#e8f5e9; color:#2e7d32; font-size:0.75rem; padding:4px 10px; border-radius:20px; font-weight:700; }
+    .badge-menipis { background:#fff3e0; color:#E65100; font-size:0.75rem; padding:4px 10px; border-radius:20px; font-weight:700; }
+    .badge-habis   { background:#ffebee; color:#c62828; font-size:0.75rem; padding:4px 10px; border-radius:20px; font-weight:700; }
+    .stok-bar-wrap { background:#e8f5e9; border-radius:20px; height:8px; width:100%; min-width:80px; }
+    .stok-bar      { height:8px; border-radius:20px; background:#4CAF50; transition:width 0.4s; }
+    .stok-bar.warn { background:#F57C00; }
+    .stok-bar.danger { background:#c62828; }
+
+    /* Mobile */
+    .mobile-cards { display:none; flex-direction:column; gap:10px; }
+    .bahan-card { background:#fff; border-radius:14px; padding:14px 16px; box-shadow:0 2px 8px rgba(56,142,60,0.09); border-left:5px solid #4CAF50; }
+    .bahan-card.warn   { border-left-color:#F57C00; }
+    .bahan-card.danger { border-left-color:#c62828; }
+    .bahan-card-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .bahan-nama { font-size:14px; font-weight:700; color:#1b5e20; }
+    .bahan-meta { font-size:12px; color:#888; margin-bottom:8px; }
+    .bahan-stok-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .bahan-actions { display:flex; gap:6px; }
+
+    @media (max-width:768px) {
+      #sidebar { display:none; }
+      .main-content { margin-left:0 !important; padding:10px 12px !important; max-width:100% !important; }
+      .navbar-dashboard { border-radius:12px; padding:11px 14px; margin-bottom:12px; }
+      .navbar-dashboard h2 { font-size:15px; }
+      .stat-grid { grid-template-columns:1fr 1fr; }
+      .tabel-desktop { display:none !important; }
+      .mobile-cards { display:flex !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar Desktop -->
+  <div id="sidebar" class="d-none d-md-block bg-success text-white p-3">
+    <h4 class="fw-bold">
+      <img src="http://localhost/Projek_jualin_v0.1/Frontend/assets/img/logo2.png" width="32" height="32" class="me-2">Jualin
+    </h4>
+    <hr>
+    <ul class="nav nav-pills flex-column mb-auto">
+      <li><a href="produk.html"       class="nav-link text-white">📦 Produk</a></li>
+      <li><a href="user.html"         class="nav-link text-white">👤 User</a></li>
+      <li><a href="laporan.html"      class="nav-link text-white">📑 Laporan</a></li>
+      <li><a href="bahan_baku.html"   class="nav-link text-white active">🧪 Bahan Baku</a></li>
+      <li><a href="resep_produk.html" class="nav-link text-white ">🍳 Resep Produk</a></li>
+      <li><a href="http://localhost/Projek_jualin_v0.1/Frontend/login.html" class="nav-link text-danger fw-bold">🚪 Logout</a></li>
+    </ul>
+  </div>
+
+  <!-- Navbar Mobile -->
+  <nav class="navbar bg-success d-md-none px-3 py-2">
+    <button class="btn btn-light btn-sm" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">☰ Menu</button>
+    <span class="text-white fw-bold ms-2">
+      <img src="http://localhost/Projek_jualin_v0.1/Frontend/assets/img/logo2.png" width="26" height="26" class="me-1">Jualin
+    </span>
+  </nav>
+
+  <!-- Offcanvas Mobile -->
+  <div class="offcanvas offcanvas-start text-bg-success" id="mobileSidebar">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title"><img src="http://localhost/Projek_jualin_v0.1/Frontend/assets/img/logo2.png" width="28" height="28" class="me-2">Jualin</h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+      <ul class="nav nav-pills flex-column">
+        <li><a href="produk.html"       class="nav-link text-white">📦 Produk</a></li>
+        <li><a href="user.html"         class="nav-link text-white">👤 User</a></li>
+        <li><a href="laporan.html"      class="nav-link text-white">📑 Laporan</a></li>
+        <li><a href="bahan_baku.html"   class="nav-link text-white active">🧪 Bahan Baku</a></li>
+        <li><a href="resep_produk.html" class="nav-link text-white ">🍳 Resep Produk</a></li>
+        <li><a href="../login.html"     class="nav-link text-danger fw-bold">🚪 Logout</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- KONTEN -->
+  <div class="main-content">
+    <div class="container-fluid py-3">
+
+      <!-- Header -->
+      <div class="navbar-dashboard d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+        <h2>🧪 Kelola Bahan Baku</h2>
+        <div class="d-flex gap-2 mt-2 mt-md-0">
+          <a href="resep_produk.html" class="btn btn-light">🍳 Kelola Resep</a>
+          <a href="laporan_stok_bahan.html" class="btn btn-warning">📊 Laporan Stok Bahan Baku</a>
+        </div>
+      </div>
+
+      <!-- STAT CARDS -->
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-box-icon">🧪</div>
+          <div class="stat-box-label">Total Bahan</div>
+          <div class="stat-box-val" id="sTotalBahan">-</div>
+        </div>
+        <div class="stat-box b2">
+          <div class="stat-box-icon">⚠️</div>
+          <div class="stat-box-label">Stok Menipis</div>
+          <div class="stat-box-val warn" id="sMenuipis">-</div>
+        </div>
+        <div class="stat-box b3">
+          <div class="stat-box-icon">🚨</div>
+          <div class="stat-box-label">Stok Habis</div>
+          <div class="stat-box-val danger" id="sHabis">-</div>
+        </div>
+      </div>
+
+      <!-- FORM TAMBAH / EDIT -->
+      <div class="form-card">
+        <div class="form-card-title" id="formTitle">➕ Tambah Bahan Baku Baru</div>
+        <input type="hidden" id="editId">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Nama Bahan <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="fNama" placeholder="Contoh: Tepung Terigu">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Satuan <span class="text-danger">*</span></label>
+            <select class="form-select" id="fSatuan">
+              <option value="gram">gram</option>
+              <option value="kg">kg</option>
+              <option value="ml">ml</option>
+              <option value="liter">liter</option>
+              <option value="pcs">pcs</option>
+              <option value="bungkus">bungkus</option>
+              <option value="botol">botol</option>
+              <option value="lembar">lembar</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Stok Saat Ini</label>
+            <input type="number" class="form-control" id="fStok" placeholder="0" min="0" step="0.01">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Stok Minimum</label>
+            <input type="number" class="form-control" id="fStokMin" placeholder="0" min="0" step="0.01">
+            <div class="form-text">Batas peringatan stok menipis</div>
+          </div>
+          <div class="col-md-3 d-flex align-items-end gap-2">
+            <button class="btn btn-success px-4" onclick="simpanBahan()">💾 Simpan</button>
+            <button class="btn btn-outline-secondary" onclick="resetForm()" id="btnBatal" style="display:none">✕ Batal</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter -->
+      <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+        <span class="fw-semibold text-success" style="font-size:13px;">🔍 Cari:</span>
+        <input type="text" id="filterNama" class="form-control form-control-sm"
+          style="width:auto;min-width:200px;" placeholder="Nama bahan..."
+          oninput="applyFilter()">
+        <select class="form-select form-select-sm" id="filterStatus"
+          style="width:auto;min-width:150px;" onchange="applyFilter()">
+          <option value="">Semua Status</option>
+          <option value="aman">✅ Aman</option>
+          <option value="menipis">⚠️ Menipis</option>
+          <option value="habis">🚨 Habis</option>
+        </select>
+        <button class="btn btn-outline-secondary btn-sm" onclick="resetFilter()">Reset</button>
+      </div>
+
+      <!-- TABEL DESKTOP -->
+      <div class="tabel-card tabel-desktop">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nama Bahan</th>
+                <th>Satuan</th>
+                <th>Stok Saat Ini</th>
+                <th>Stok Minimum</th>
+                <th>Progress</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabelBahan">
+              <tr><td colspan="8" class="text-center py-4 text-muted">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CARD MOBILE -->
+      <div class="mobile-cards" id="mobileBahan">
+        <p class="text-center text-muted">Memuat data...</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const BASE    = "http://localhost/Projek_jualin_v0.1/Backend/produk/";
+    const id_toko = sessionStorage.getItem("admin_id_toko");
+    if (!id_toko) window.location.href = "http://localhost/Projek_jualin_v0.1/Frontend/login.html";
+
+    let allBahan = [];
+
+    // ── LOAD ──
+    async function loadBahan() {
+      try {
+        const res = await axios.get(`${BASE}bahan_baku.php?id_toko=${id_toko}`);
+        allBahan  = res.data || [];
+        applyFilter();
+        updateStatCards();
+      } catch(e) {
+        document.getElementById("tabelBahan").innerHTML =
+          `<tr><td colspan="8" class="text-center text-danger py-4">Gagal memuat data</td></tr>`;
+      }
+    }
+
+    // ── STAT CARDS ──
+    function updateStatCards() {
+      const menipis = allBahan.filter(b => parseFloat(b.stok) <= parseFloat(b.stok_minimum) && parseFloat(b.stok) > 0).length;
+      const habis   = allBahan.filter(b => parseFloat(b.stok) <= 0).length;
+      document.getElementById("sTotalBahan").textContent = allBahan.length + " bahan";
+      document.getElementById("sMenuipis").textContent   = menipis + " bahan";
+      document.getElementById("sHabis").textContent      = habis   + " bahan";
+    }
+
+    // ── STATUS HELPER ──
+    function getStatus(stok, min) {
+      stok = parseFloat(stok); min = parseFloat(min);
+      if (stok <= 0)   return "habis";
+      if (stok <= min) return "menipis";
+      return "aman";
+    }
+    function statusBadge(status) {
+      if (status === "habis")   return `<span class="badge-habis">🚨 Habis</span>`;
+      if (status === "menipis") return `<span class="badge-menipis">⚠️ Menipis</span>`;
+      return `<span class="badge-aman">✅ Aman</span>`;
+    }
+    function progressBar(stok, min) {
+      stok = parseFloat(stok); min = parseFloat(min);
+      if (min <= 0) return `<div class="stok-bar-wrap"><div class="stok-bar" style="width:100%"></div></div>`;
+      const pct    = Math.min((stok / (min * 3)) * 100, 100);
+      const status = getStatus(stok, min);
+      const cls    = status === "habis" ? "danger" : status === "menipis" ? "warn" : "";
+      return `<div class="stok-bar-wrap"><div class="stok-bar ${cls}" style="width:${pct}%"></div></div>`;
+    }
+
+    // ── FILTER ──
+    function applyFilter() {
+      const kw     = document.getElementById("filterNama").value.toLowerCase();
+      const status = document.getElementById("filterStatus").value;
+      const data   = allBahan.filter(b => {
+        const matchNama   = b.nama_bahan.toLowerCase().includes(kw);
+        const matchStatus = !status || getStatus(b.stok, b.stok_minimum) === status;
+        return matchNama && matchStatus;
+      });
+      renderTabel(data);
+      renderMobile(data);
+    }
+    function resetFilter() {
+      document.getElementById("filterNama").value    = "";
+      document.getElementById("filterStatus").value  = "";
+      applyFilter();
+    }
+
+    // ── RENDER TABEL ──
+    function renderTabel(data) {
+      const tbody = document.getElementById("tabelBahan");
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Tidak ada data</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map((b, i) => {
+        const status = getStatus(b.stok, b.stok_minimum);
+        return `<tr>
+          <td>${i + 1}</td>
+          <td class="fw-semibold">${b.nama_bahan}</td>
+          <td><span class="badge bg-light text-dark border">${b.satuan}</span></td>
+          <td class="fw-bold ${status === 'habis' ? 'text-danger' : status === 'menipis' ? 'text-warning' : 'text-success'}">
+            ${parseFloat(b.stok).toLocaleString("id-ID")} ${b.satuan}
+          </td>
+          <td class="text-muted">${parseFloat(b.stok_minimum).toLocaleString("id-ID")} ${b.satuan}</td>
+          <td style="min-width:100px">${progressBar(b.stok, b.stok_minimum)}</td>
+          <td>${statusBadge(status)}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-success" onclick="editBahan(${b.id_bahan})">✏️</button>
+              <button class="btn btn-sm btn-outline-danger"  onclick="hapusBahan(${b.id_bahan}, '${b.nama_bahan}')">🗑️</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+    }
+
+    // ── RENDER MOBILE ──
+    function renderMobile(data) {
+      const el = document.getElementById("mobileBahan");
+      if (!data.length) { el.innerHTML = `<p class="text-center text-muted">Tidak ada data</p>`; return; }
+      el.innerHTML = data.map(b => {
+        const status = getStatus(b.stok, b.stok_minimum);
+        return `
+          <div class="bahan-card ${status === 'menipis' ? 'warn' : status === 'habis' ? 'danger' : ''}">
+            <div class="bahan-card-top">
+              <div class="bahan-nama">🧪 ${b.nama_bahan}</div>
+              ${statusBadge(status)}
+            </div>
+            <div class="bahan-meta">Satuan: ${b.satuan} &nbsp;·&nbsp; Min: ${parseFloat(b.stok_minimum).toLocaleString("id-ID")} ${b.satuan}</div>
+            <div class="bahan-stok-row">
+              <div>
+                ${progressBar(b.stok, b.stok_minimum)}
+                <div style="font-size:12px;margin-top:4px;font-weight:700;color:${status==='habis'?'#c62828':status==='menipis'?'#F57C00':'#2e7d32'}">
+                  ${parseFloat(b.stok).toLocaleString("id-ID")} ${b.satuan}
+                </div>
+              </div>
+              <div class="bahan-actions">
+                <button class="btn btn-sm btn-outline-success" onclick="editBahan(${b.id_bahan})">✏️</button>
+                <button class="btn btn-sm btn-outline-danger"  onclick="hapusBahan(${b.id_bahan}, '${b.nama_bahan}')">🗑️</button>
+              </div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    // ── SIMPAN (tambah / edit) ──
+    async function simpanBahan() {
+      const editId  = document.getElementById("editId").value;
+      const nama    = document.getElementById("fNama").value.trim();
+      const satuan  = document.getElementById("fSatuan").value;
+      const stok    = parseFloat(document.getElementById("fStok").value    || 0);
+      const stokMin = parseFloat(document.getElementById("fStokMin").value || 0);
+
+      if (!nama) { Swal.fire("⚠️", "Nama bahan wajib diisi", "warning"); return; }
+
+      try {
+        let res;
+        if (editId) {
+          res = await axios.put(`${BASE}bahan_baku.php`, {
+            id_bahan: parseInt(editId), nama_bahan: nama, satuan, stok, stok_minimum: stokMin
+          });
+        } else {
+          res = await axios.post(`${BASE}bahan_baku.php`, {
+            id_toko: parseInt(id_toko), nama_bahan: nama, satuan, stok, stok_minimum: stokMin
+          });
+        }
+        if (res.data.status) {
+          Swal.fire({ icon:"success", title:"Berhasil!", text: res.data.message, timer:1500, showConfirmButton:false });
+          resetForm();
+          loadBahan();
+        } else {
+          Swal.fire("Gagal!", res.data.message, "error");
+        }
+      } catch(e) {
+        Swal.fire("Error!", "Tidak bisa terhubung ke server", "error");
+      }
+    }
+
+    // ── EDIT ──
+    function editBahan(id) {
+      const b = allBahan.find(x => x.id_bahan == id);
+      if (!b) return;
+      document.getElementById("editId").value    = b.id_bahan;
+      document.getElementById("fNama").value     = b.nama_bahan;
+      document.getElementById("fSatuan").value   = b.satuan;
+      document.getElementById("fStok").value     = b.stok;
+      document.getElementById("fStokMin").value  = b.stok_minimum;
+      document.getElementById("formTitle").textContent = "✏️ Edit Bahan Baku: " + b.nama_bahan;
+      document.getElementById("btnBatal").style.display = "";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ── HAPUS ──
+    async function hapusBahan(id, nama) {
+      const conf = await Swal.fire({
+        title: `Hapus "${nama}"?`,
+        text: "Resep produk yang memakai bahan ini juga akan terhapus.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Ya, Hapus",
+        cancelButtonText: "Batal",
+        confirmButtonColor: "#d33"
+      });
+      if (!conf.isConfirmed) return;
+      try {
+        const res = await axios.delete(`${BASE}bahan_baku.php`, { data: { id_bahan: id } });
+        if (res.data.status) {
+          Swal.fire({ icon:"success", title:"Terhapus!", timer:1200, showConfirmButton:false });
+          loadBahan();
+        } else {
+          Swal.fire("Gagal!", res.data.message, "error");
+        }
+      } catch(e) {
+        Swal.fire("Error!", "Tidak bisa terhubung ke server", "error");
+      }
+    }
+
+    // ── RESET FORM ──
+    function resetForm() {
+      document.getElementById("editId").value   = "";
+      document.getElementById("fNama").value    = "";
+      document.getElementById("fStok").value    = "";
+      document.getElementById("fStokMin").value = "";
+      document.getElementById("fSatuan").value  = "gram";
+      document.getElementById("formTitle").textContent = "➕ Tambah Bahan Baku Baru";
+      document.getElementById("btnBatal").style.display = "none";
+    }
+
+    loadBahan();
+  </script>
+</body>
+</html>
