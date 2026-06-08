@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bahan Baku - Jualin POS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    body {
+      margin: 0; background-color: #d4f5d1;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #1a2e1a; min-height: 100vh; display: flex;
+    }
+
+    #sidebar {
+      width: 240px; position: fixed; top: 0; left: 0; height: 100vh;
+      background: #1b5e20; border-right: 1px solid rgba(255,255,255,0.05);
+      padding: 24px 16px; z-index: 100; display: flex; flex-direction: column;
+    }
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; padding: 0 10px; }
+    .sidebar-brand img { width: 36px; height: 36px; }
+    .sidebar-brand span { font-size: 1.25rem; font-weight: 800; color: #a5d6a7; letter-spacing: 0.5px; }
+
+    .sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+    .sidebar-menu li a {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px;
+      color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.95rem; font-weight: 600; 
+      transition: all 0.25s; margin-bottom: 6px;
+    }
+    .sidebar-menu li a:hover, .sidebar-menu li a.active { background: rgba(165,214,167,0.2); color: #fff; }
+
+    .main-wrapper {
+      margin-left: 240px; width: calc(100% - 240px); min-height: 100vh;
+      display: flex; flex-direction: column; padding: 24px; gap: 20px;
+    }
+
+    .top-header {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+      background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px);
+      padding: 18px 24px; border-radius: 20px; box-shadow: 0 4px 15px rgba(27, 94, 32, 0.05);
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .header-title { margin: 0; font-weight: 800; font-size: 1.4rem; color: #1b5e20; }
+    .header-subtitle { font-size: 0.85rem; color: #4a6741; margin-top: 4px; font-weight: 500; }
+    
+    .btn-action-top {
+      font-weight: 700; border: 1px solid transparent;
+      padding: 8px 20px; border-radius: 10px; transition: all 0.3s; text-decoration: none;
+      display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem;
+      cursor: pointer; height: 38px;
+    }
+    .btn-action-top.primary { background: #fff; color: #1976d2; border-color: #bbdefb; }
+    .btn-action-top.primary:hover { background: #e3f2fd; border-color: #90caf9; }
+    .btn-action-top.warning { background: #fff; color: #ed6c02; border-color: #ffe0b2; }
+    .btn-action-top.warning:hover { background: #fff3e0; border-color: #ffcc80; }
+
+    .content-card {
+      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+      border-radius: 20px; padding: 24px; box-shadow: 0 8px 32px rgba(27, 94, 32, 0.06);
+      flex-grow: 1; display: flex; flex-direction: column; gap: 20px;
+    }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .stat-box {
+      background: #fff; border-radius: 16px; padding: 20px;
+      border: 1px solid #e8f5e9; box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+      display: flex; flex-direction: column; gap: 4px; position: relative; overflow: hidden;
+    }
+    .stat-box::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:#4CAF50; }
+    .stat-box.b2::before { background: #F57C00; }
+    .stat-box.b3::before { background: #e53935; }
+    .stat-label { font-size: 0.75rem; color: #888; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-val { font-size: 1.6rem; font-weight: 800; color: #1a2e1a; line-height: 1.2; }
+    .stat-val.warn { color: #F57C00; }
+    .stat-val.danger { color: #e53935; }
+
+    .form-wrapper { background: #f9fdf9; border-radius: 16px; padding: 20px; border: 1px solid #e8f5e9; }
+    .toolbar-title { font-size: 1.1rem; font-weight: 800; color: #1b5e20; margin: 0 0 16px 0; }
+    .form-label { font-size: 0.85rem; font-weight: 700; color: #333; margin-bottom: 6px;}
+    .form-control, .form-select {
+      background: #fff; border: 1px solid #dceede; border-radius: 12px;
+      padding: 10px 14px; font-size: 0.9rem; transition: all 0.3s;
+    }
+    .form-control:focus, .form-select:focus { outline: none; border-color: #4CAF50; box-shadow: 0 0 0 4px rgba(76,175,80,0.1); }
+    .btn-simpan {
+      background: #4CAF50; color: #fff; font-weight: 700; border: none;
+      padding: 10px 24px; border-radius: 10px; transition: 0.3s; height: 42px;
+    }
+    .btn-simpan:hover { background: #388e3c; }
+
+    .search-bar-wrapper {
+      display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .search-box { position: relative; width: 100%; max-width: 300px; }
+    .search-box input {
+      width: 100%; background: #fff; border: 1px solid #dceede; border-radius: 12px;
+      padding: 8px 16px; font-size: 0.9rem; transition: all 0.3s;
+    }
+    
+    .tabel-desktop { flex-grow: 1; overflow-y: auto; }
+    .table-modern { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: -8px; }
+    .table-modern thead th { border: none; background: #ffffff; color: #888; text-transform: uppercase; font-size: 0.75rem; font-weight: 700; padding: 12px 16px; position: sticky; top: 0; z-index: 10; }
+    .table-modern tbody tr { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: 0.2s; border: 1px solid #f0f7f0; }
+    .table-modern tbody tr:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(76,175,80,0.08); }
+    .table-modern tbody td { padding: 12px 16px; vertical-align: middle; color: #333; font-size: 0.9rem; border-top: 1px solid #f5fbf5; border-bottom: 1px solid #f5fbf5; }
+    .table-modern tbody td:first-child { border-left: 1px solid #f5fbf5; border-radius: 12px 0 0 12px; font-weight: bold; color: #888; }
+    .table-modern tbody td:last-child { border-right: 1px solid #f5fbf5; border-radius: 0 12px 12px 0; }
+
+    .stok-bar-wrap { background: #e8f5e9; border-radius: 10px; height: 8px; width: 100%; max-width: 120px; overflow: hidden; }
+    .stok-bar { height: 100%; background: #4CAF50; border-radius: 10px; transition: width 0.5s; }
+    .stok-bar.warn { background: #F57C00; }
+    .stok-bar.danger { background: #c62828; }
+
+    .badge-status { padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.75rem; text-align: center; min-width: 70px; display: inline-block;}
+    .badge-aman { background: #e8f5e9; color: #2e7d32; }
+    .badge-warn { background: #fff3e0; color: #e65100; }
+    .badge-habis { background: #ffebee; color: #c62828; }
+
+    .btn-action {
+      padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; transition: 0.2s;
+    }
+    .btn-action.edit { background: rgba(255, 152, 0, 0.1); color: #f57c00; }
+    .btn-action.edit:hover { background: #f57c00; color: #fff; }
+    .btn-action.del { background: rgba(244, 67, 54, 0.1); color: #f44336; }
+    .btn-action.del:hover { background: #f44336; color: #fff; }
+
+    .mobile-cards-container { display: none; }
+
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      .main-wrapper { margin-left: 0; padding: 16px; padding-top: 80px; width: 100%; }
+      .m-navbar {
+        position: fixed; top: 0; left: 0; right: 0; background: rgba(27, 94, 32, 0.95); backdrop-filter: blur(12px);
+        z-index: 99; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;
+      }
+      .m-navbar span { color: #fff; font-weight: 800; font-size: 1.1rem; }
+      .btn-menu { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 6px 12px; border-radius: 8px; font-weight: 600; }
+      
+      .top-header { flex-direction: column; align-items: stretch; }
+      .export-group { display: flex; gap: 8px; justify-content: space-between; width: 100%; }
+      .btn-action-top { flex: 1; }
+      
+      .content-card { padding: 16px; background: transparent; box-shadow: none; gap: 16px;}
+      .stat-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .stat-box { padding: 14px; }
+      .stat-val { font-size: 1.2rem; }
+      
+      .form-wrapper { padding: 16px; }
+      .search-bar-wrapper { flex-direction: column; align-items: stretch; }
+      .search-box { max-width: 100%; }
+
+      .tabel-desktop { display: none; }
+      .mobile-cards-container { display: flex; flex-direction: column; gap: 12px; flex-grow: 1; }
+      .m-card {
+        background: #fff; border-radius: 16px; padding: 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #f0f7f0; position: relative; overflow: hidden;
+      }
+      .m-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:#4CAF50; }
+      .m-card.warn::before { background: #F57C00; }
+      .m-card.habis::before { background: #e53935; }
+      
+      .m-card-title { font-weight: 800; font-size: 1.05rem; color: #1a2e1a; margin-bottom: 4px;}
+      .m-card-sub { font-size: 0.8rem; color: #666; margin-bottom: 10px; }
+      .m-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #f9fdf9; padding: 10px; border-radius: 12px; margin-bottom: 12px;}
+      .m-lbl { font-size: 0.7rem; color: #888; text-transform: uppercase; font-weight: 700;}
+      .m-val { font-size: 0.9rem; font-weight: 800; color: #333;}
+      .m-actions { display: flex; gap: 8px; }
+      .m-btn { flex: 1; padding: 8px; border-radius: 10px; text-align: center; font-size: 0.85rem; font-weight: 700; border: none; }
+      .m-btn.edit { background: rgba(255, 152, 0, 0.1); color: #f57c00; }
+      .m-btn.del { background: rgba(244, 67, 54, 0.1); color: #f44336; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar" class="d-none d-md-flex">
+    <div class="sidebar-brand">
+      <img src="../assets/img/logo2.png" alt="Logo">
+      <span>Jualin</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="produk.html">Data Produk</a></li>
+      <li><a href="user.html">Manajemen User</a></li>
+      <li><a href="laporan.html">Laporan </a></li>
+      <li><a href="bahan_baku.html" class="active"> Bahan Baku</a></li>
+      <li><a href="resep_produk.html">Resep Produk</a></li>
+    </ul>
+    <div style="margin-top: auto;">
+      <a href="#" onclick="logout()" class="btn btn-danger w-100" style="background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.2); color: #ff6b6b; font-weight: 700; border-radius: 12px; padding: 10px; text-decoration:none; text-align:center; display:block;">Keluar Sesi</a>
+    </div>
+  </div>
+
+  <div class="m-navbar d-md-none">
+    <span><img src="../assets/img/logo2.png" alt="Logo" height="24"> Jualin Admin</span>
+    <button class="btn-menu" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">Menu</button>
+  </div>
+
+  <div class="offcanvas offcanvas-start" id="mobileSidebar" style="background:#1e293b;">
+    <div class="offcanvas-header border-bottom border-secondary">
+      <h5 class="offcanvas-title text-white fw-bold d-flex align-items-center gap-2">
+        <img src="../assets/img/logo2.png" width="28"> Jualin
+      </h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column">
+      <ul class="sidebar-menu mt-2 flex-grow-1">
+        <li><a href="produk.html">Data Produk</a></li>
+        <li><a href="user.html">Manajemen User</a></li>
+        <li><a href="laporan.html">Laporan </a></li>
+        <li><a href="bahan_baku.html" class="active"> Bahan Baku</a></li>
+        <li><a href="resep_produk.html">Resep Produk</a></li>
+      </ul>
+      <a href="#" onclick="logout()" class="btn btn-danger w-100 mt-4" style="background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.2); color: #ff6b6b; font-weight: 700; border-radius: 12px; padding: 10px; text-align:center; text-decoration:none;">Keluar Sesi</a>
+    </div>
+  </div>
+
+  <div class="main-wrapper">
+    <div class="top-header">
+      <div>
+        <h1 class="header-title">Kelola Bahan Baku</h1>
+        <div class="header-subtitle">Inventaris dan manajemen stok operasional</div>
+      </div>
+      <div class="export-group d-flex gap-2">
+        <a href="resep_produk.html" class="btn-action-top primary">Kelola Resep</a>
+        <a href="laporan_stok_bahan.html" class="btn-action-top warning">Laporan Stok</a>
+      </div>
+    </div>
+
+    <div class="content-card">
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-label">Total Material</div>
+          <div class="stat-val" id="sTotalBahan">-</div>
+        </div>
+        <div class="stat-box b2">
+          <div class="stat-label">Stok Kritis</div>
+          <div class="stat-val warn" id="sMenuipis">-</div>
+        </div>
+        <div class="stat-box b3">
+          <div class="stat-label">Stok Kosong</div>
+          <div class="stat-val danger" id="sHabis">-</div>
+        </div>
+      </div>
+
+      <div class="form-wrapper">
+        <h3 class="toolbar-title" id="formTitle">Registrasi Bahan Baku Baru</h3>
+        <input type="hidden" id="editId">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label">Nama Material</label>
+            <input type="text" class="form-control" id="fNama" placeholder="Nama bahan">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Satuan Ukur</label>
+            <select class="form-select" id="fSatuan">
+              <option value="gram">gram</option>
+              <option value="kg">kg</option>
+              <option value="ml">ml</option>
+              <option value="liter">liter</option>
+              <option value="pcs">pcs</option>
+              <option value="bungkus">bungkus</option>
+              <option value="botol">botol</option>
+              <option value="lembar">lembar</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Volume Stok</label>
+            <input type="number" class="form-control" id="fStok" placeholder="0" min="0" step="0.01">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Batas Minimum</label>
+            <input type="number" class="form-control" id="fStokMin" placeholder="0" min="0" step="0.01">
+          </div>
+          <div class="col-md-3 d-flex gap-2">
+            <button class="btn-simpan w-100" onclick="simpanBahan()">Simpan</button>
+            <button class="btn btn-light" onclick="resetForm()" id="btnBatal" style="display:none; border-radius:10px; height:42px; border:1px solid #ccc; font-weight:700;">Batal</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-column flex-grow-1">
+        <div class="search-bar-wrapper">
+          <h3 class="toolbar-title mb-0">Daftar Material</h3>
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <select class="form-select" id="filterStatus" style="width:160px;" onchange="applyFilter()">
+              <option value="">Semua Kondisi</option>
+              <option value="aman">Aman</option>
+              <option value="menipis">Menipis</option>
+              <option value="habis">Habis</option>
+            </select>
+            <div class="search-box">
+              <input type="text" id="filterNama" placeholder="Cari nama bahan..." oninput="applyFilter()">
+            </div>
+          </div>
+        </div>
+
+        <div class="tabel-desktop mt-2">
+          <table class="table-modern">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Deskripsi Material</th>
+                <th>Satuan</th>
+                <th>Volume Tersedia</th>
+                <th>Batas Min</th>
+                <th>Visualisasi</th>
+                <th class="text-center">Kondisi</th>
+                <th class="text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabelBahan">
+              <tr><td colspan="8" class="text-center py-4 text-muted fw-bold">Sinkronisasi data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mobile-cards-container mt-2" id="mobileBahan"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    const BASE    = "../../Backend/produk/";
+    const id_toko = sessionStorage.getItem("admin_id_toko");
+    if (!id_toko) window.location.href = "../login.html";
+
+    let allBahan = [];
+
+    async function loadBahan() {
+      try {
+        const res = await axios.get(`${BASE}bahan_baku.php?id_toko=${id_toko}`);
+        allBahan  = res.data || [];
+        applyFilter();
+        updateStatCards();
+      } catch(e) {
+        document.getElementById("tabelBahan").innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">Terjadi kendala jaringan</td></tr>`;
+      }
+    }
+
+    function updateStatCards() {
+      const menipis = allBahan.filter(b => parseFloat(b.stok) <= parseFloat(b.stok_minimum) && parseFloat(b.stok) > 0).length;
+      const habis   = allBahan.filter(b => parseFloat(b.stok) <= 0).length;
+      document.getElementById("sTotalBahan").textContent = allBahan.length;
+      document.getElementById("sMenuipis").textContent   = menipis;
+      document.getElementById("sHabis").textContent      = habis;
+    }
+
+    function getStatus(stok, min) {
+      stok = parseFloat(stok); min = parseFloat(min);
+      if (stok <= 0)   return "habis";
+      if (stok <= min) return "menipis";
+      return "aman";
+    }
+
+    function statusBadge(status) {
+      if (status === "habis")   return `<span class="badge-status badge-habis">Habis</span>`;
+      if (status === "menipis") return `<span class="badge-status badge-warn">Menipis</span>`;
+      return `<span class="badge-status badge-aman">Aman</span>`;
+    }
+
+    function progressBar(stok, min) {
+      stok = parseFloat(stok); min = parseFloat(min);
+      if (min <= 0) return `<div class="stok-bar-wrap"><div class="stok-bar" style="width:100%"></div></div>`;
+      const pct    = Math.min((stok / (min * 3)) * 100, 100);
+      const status = getStatus(stok, min);
+      const cls    = status === "habis" ? "danger" : status === "menipis" ? "warn" : "";
+      return `<div class="stok-bar-wrap"><div class="stok-bar ${cls}" style="width:${pct}%"></div></div>`;
+    }
+
+    function applyFilter() {
+      const kw     = document.getElementById("filterNama").value.toLowerCase();
+      const status = document.getElementById("filterStatus").value;
+      const data   = allBahan.filter(b => {
+        const matchNama   = b.nama_bahan.toLowerCase().includes(kw);
+        const matchStatus = !status || getStatus(b.stok, b.stok_minimum) === status;
+        return matchNama && matchStatus;
+      });
+      renderTabel(data);
+      renderMobile(data);
+    }
+
+    function renderTabel(data) {
+      const tbody = document.getElementById("tabelBahan");
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted fw-bold">Belum ada data tersedia</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map((b, i) => {
+        const status = getStatus(b.stok, b.stok_minimum);
+        return `<tr>
+          <td>${i + 1}</td>
+          <td class="fw-bold" style="color:#1b5e20;">${b.nama_bahan}</td>
+          <td><span class="badge bg-light text-dark border">${b.satuan}</span></td>
+          <td class="fw-bold ${status === 'habis' ? 'text-danger' : status === 'menipis' ? 'text-warning' : 'text-success'}">
+            ${parseFloat(b.stok).toLocaleString("id-ID")}
+          </td>
+          <td class="text-muted">${parseFloat(b.stok_minimum).toLocaleString("id-ID")}</td>
+          <td style="min-width:100px">${progressBar(b.stok, b.stok_minimum)}</td>
+          <td class="text-center">${statusBadge(status)}</td>
+          <td>
+            <div class="d-flex gap-2 justify-content-center">
+              <button class="btn-action edit" onclick="editBahan(${b.id_bahan})">Edit</button>
+              <button class="btn-action del"  onclick="hapusBahan(${b.id_bahan}, '${b.nama_bahan}')">Hapus</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+    }
+
+    function renderMobile(data) {
+      const el = document.getElementById("mobileBahan");
+      if (!data.length) { el.innerHTML = `<p class="text-center text-muted fw-bold">Belum ada data tersedia</p>`; return; }
+      el.innerHTML = data.map(b => {
+        const status = getStatus(b.stok, b.stok_minimum);
+        const cardCls = status === 'menipis' ? 'warn' : status === 'habis' ? 'danger' : '';
+        const txtClass = status === 'habis' ? 'text-danger' : status === 'menipis' ? 'text-warning' : 'text-success';
+        return `
+          <div class="m-card ${cardCls}">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <div class="m-card-title">${b.nama_bahan}</div>
+                <div class="m-card-sub">Satuan: ${b.satuan}</div>
+              </div>
+              ${statusBadge(status)}
+            </div>
+            <div class="m-grid-2">
+              <div><div class="m-lbl">Stok Saat Ini</div><div class="m-val ${txtClass}">${parseFloat(b.stok).toLocaleString("id-ID")}</div></div>
+              <div><div class="m-lbl">Batas Minimum</div><div class="m-val">${parseFloat(b.stok_minimum).toLocaleString("id-ID")}</div></div>
+            </div>
+            ${progressBar(b.stok, b.stok_minimum)}
+            <div class="m-actions mt-3">
+              <button class="m-btn edit" onclick="editBahan(${b.id_bahan})">Edit</button>
+              <button class="m-btn del" onclick="hapusBahan(${b.id_bahan}, '${b.nama_bahan}')">Hapus</button>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    async function simpanBahan() {
+      const editId  = document.getElementById("editId").value;
+      const nama    = document.getElementById("fNama").value.trim();
+      const satuan  = document.getElementById("fSatuan").value;
+      const stok    = parseFloat(document.getElementById("fStok").value    || 0);
+      const stokMin = parseFloat(document.getElementById("fStokMin").value || 0);
+
+      if (!nama) { Swal.fire("Perhatian", "Nama material wajib dilengkapi", "warning"); return; }
+
+      try {
+        let res;
+        if (editId) {
+          res = await axios.put(`${BASE}bahan_baku.php`, {
+            id_bahan: parseInt(editId), nama_bahan: nama, satuan, stok, stok_minimum: stokMin
+          });
+        } else {
+          res = await axios.post(`${BASE}bahan_baku.php`, {
+            id_toko: parseInt(id_toko), nama_bahan: nama, satuan, stok, stok_minimum: stokMin
+          });
+        }
+        if (res.data.status) {
+          Swal.fire({ icon:"success", title:"Tersimpan", text: res.data.message, timer:1500, showConfirmButton:false });
+          resetForm();
+          loadBahan();
+        } else {
+          Swal.fire("Kendala Sistem", res.data.message, "error");
+        }
+      } catch(e) {
+        Swal.fire("Koneksi Gagal", "Pastikan koneksi internet stabil", "error");
+      }
+    }
+
+    function editBahan(id) {
+      const b = allBahan.find(x => x.id_bahan == id);
+      if (!b) return;
+      document.getElementById("editId").value    = b.id_bahan;
+      document.getElementById("fNama").value     = b.nama_bahan;
+      document.getElementById("fSatuan").value   = b.satuan;
+      document.getElementById("fStok").value     = b.stok;
+      document.getElementById("fStokMin").value  = b.stok_minimum;
+      document.getElementById("formTitle").textContent = "Edit Data Material";
+      document.getElementById("btnBatal").style.display = "inline-block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function hapusBahan(id, nama) {
+      const conf = await Swal.fire({
+        title: "Hapus Material",
+        text: `Hapus data "${nama}"? Relasi pada resep juga akan dibersihkan.`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Hapus",
+        cancelButtonText: "Batal",
+        confirmButtonColor: "#d33"
+      });
+      if (!conf.isConfirmed) return;
+      try {
+        const res = await axios.delete(`${BASE}bahan_baku.php`, { data: { id_bahan: id } });
+        if (res.data.status) {
+          Swal.fire({ icon:"success", title:"Terhapus", timer:1200, showConfirmButton:false });
+          loadBahan();
+        } else {
+          Swal.fire("Gagal", res.data.message, "error");
+        }
+      } catch(e) {
+        Swal.fire("Koneksi Gagal", "Pastikan koneksi internet stabil", "error");
+      }
+    }
+
+    function resetForm() {
+      document.getElementById("editId").value   = "";
+      document.getElementById("fNama").value    = "";
+      document.getElementById("fStok").value    = "";
+      document.getElementById("fStokMin").value = "";
+      document.getElementById("fSatuan").value  = "gram";
+      document.getElementById("formTitle").textContent = "Registrasi Bahan Baku Baru";
+      document.getElementById("btnBatal").style.display = "none";
+    }
+
+    loadBahan();
+  </script>
+</body>
+</html>

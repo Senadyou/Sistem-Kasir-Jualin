@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Stok - Jualin POS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary-color: #2e7d32;
+      --secondary-color: #4CAF50;
+      --bg-color: #d4f5d1;
+      --card-bg: #ffffff;
+      --text-main: #1b5e20;
+      --text-muted: #666666;
+      --border-radius: 12px;
+      --shadow-soft: 0 4px 20px rgba(46, 125, 50, 0.08);
+      --transition: all 0.3s ease;
+      --danger-color: #d32f2f;
+      --warning-color: #f57c00;
+      --info-color: #1976d2;
+    }
+
+    body { margin: 0; background-color: var(--bg-color); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #1a2e1a; min-height: 100vh; display: flex; }
+    
+    /* =========================================
+       SIDEBAR & NAVBAR 
+       ========================================= */
+    #sidebar {
+      width: 250px; position: fixed; top: 0; left: 0; height: 100vh;
+      background: #1b5e20; border-right: 1px solid rgba(255,255,255,0.05);
+      padding: 24px 16px; z-index: 100; display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+    #sidebar::-webkit-scrollbar { width: 4px; }
+    #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; padding: 0 10px; }
+    .sidebar-brand img { width: 34px; height: 34px; }
+    .sidebar-brand span { font-size: 1.25rem; font-weight: 800; color: #a5d6a7; letter-spacing: 0.5px; }
+
+    .sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+    .sidebar-menu li a {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px;
+      color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.95rem; font-weight: 600; 
+      transition: var(--transition); margin-bottom: 6px;
+    }
+    .sidebar-menu li a:hover, .sidebar-menu li a.active { background: rgba(165,214,167,0.15); color: #fff; }
+
+    .btn-logout { background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.2); color: #ff6b6b; font-weight: 700; border-radius: 10px; padding: 10px; text-decoration: none; text-align: center; display: block; transition: var(--transition); margin-top: auto; }
+    .btn-logout:hover { background: #f44336; color: #fff; }
+
+    .m-navbar { display: none; }
+
+    /* =========================================
+       MAIN CONTENT
+       ========================================= */
+    .main-wrapper { margin-left: 250px; width: calc(100% - 250px); min-height: 100vh; display: flex; flex-direction: column; padding: 24px; gap: 20px; }
+    
+    .top-header { background: var(--card-bg); border-radius: var(--border-radius); padding: 16px 24px; box-shadow: var(--shadow-soft); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .header-title { margin: 0; font-weight: 800; font-size: 1.4rem; color: var(--text-main); }
+    .header-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+    
+    .export-group { display: flex; gap: 8px; }
+    .btn-export { font-weight: 600; padding: 8px 16px; border-radius: 8px; font-size: 13px; text-decoration: none; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border: none; }
+    .btn-export.secondary { background: #f5f5f5; color: #333; }
+    .btn-export.secondary:hover { background: #e0e0e0; }
+    .btn-export.danger { background: var(--danger-color); color: #fff; }
+    .btn-export.danger:hover { background: #b71c1c; }
+    .btn-export.primary { background: var(--info-color); color: #fff; }
+    .btn-export.primary:hover { background: #1565c0; }
+
+    .content-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 24px; box-shadow: var(--shadow-soft); flex-grow: 1; display: flex; flex-direction: column; gap: 24px; }
+
+    /* Stats Grid */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .stat-box { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid #f0f7f0; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden; }
+    .stat-box::before { content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px; background: var(--secondary-color); border-radius: 4px 0 0 4px; }
+    .stat-box.b2::before { background: var(--info-color); }
+    .stat-box.b3::before { background: var(--danger-color); }
+    .stat-box.b4::before { background: var(--warning-color); }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-val { font-size: 1.6rem; font-weight: 800; color: var(--text-main); line-height: 1.2; }
+    .stat-val.warn { color: var(--danger-color); }
+
+    /* Chart Area (Dinamic Scroll) */
+    .chart-wrapper { background: #f9fdf9; border-radius: 12px; padding: 20px; border: 1px solid #f0f7f0; display: flex; flex-direction: column; }
+    .toolbar-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+    .toolbar-title { font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin: 0; }
+    .chart-toggles { display: flex; gap: 8px; background: #fff; padding: 4px; border-radius: 8px; border: 1px solid #e8f5e9; }
+    .chart-btn { border: none; background: transparent; color: var(--text-muted); padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: var(--transition); }
+    .chart-btn.active { background: var(--primary-color); color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+    .chart-scroll-container { width: 100%; overflow-x: auto; overflow-y: hidden; padding-bottom: 10px; }
+    .chart-scroll-container::-webkit-scrollbar { height: 6px; }
+    .chart-scroll-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+    .chart-canvas-container { position: relative; height: 300px; min-width: 100%; }
+
+    /* Search & Table */
+    .search-box { width: 100%; max-width: 300px; }
+    .search-box input { width: 100%; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; transition: var(--transition); }
+    .search-box input:focus { outline: none; border-color: var(--secondary-color); box-shadow: 0 0 0 3px rgba(76,175,80,0.1); }
+
+    .tabel-desktop { flex-grow: 1; overflow-x: auto; }
+    .table-modern { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .table-modern thead th { background: #f9fbf9; color: var(--text-main); text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; padding: 14px 16px; border-bottom: 2px solid #e0e0e0; position: sticky; top: 0; z-index: 10; }
+    .table-modern tbody tr { transition: var(--transition); }
+    .table-modern tbody tr:hover td { background: #fcfdfc; }
+    .table-modern tbody td { padding: 14px 16px; vertical-align: middle; color: #444; font-size: 0.9rem; border-bottom: 1px solid #f0f0f0; }
+    .table-modern tbody tr:last-child td { border-bottom: none; }
+    
+    .produk-img-modern { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid #f0f0f0; }
+    .stok-badge { padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .stok-aman { background: #eaf8e9; color: var(--primary-color); border: 1px solid rgba(76, 175, 80, 0.2); }
+    .stok-warn { background: #fff3e0; color: var(--warning-color); border: 1px solid rgba(245, 124, 0, 0.2); }
+    .stok-habis { background: #ffebee; color: var(--danger-color); border: 1px solid rgba(211, 47, 47, 0.2); }
+
+    /* =========================================
+       MOBILE RESPONSIVE
+       ========================================= */
+    .mobile-cards-container { display: none; }
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      .main-wrapper { margin-left: 0; padding: 16px; padding-top: 80px; width: 100%; }
+      .m-navbar { position: fixed; top: 0; left: 0; right: 0; background: rgba(27, 94, 32, 0.95); backdrop-filter: blur(12px); z-index: 99; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; }
+      .m-navbar span { color: #fff; font-weight: 800; font-size: 1.1rem; }
+      .btn-menu { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+      
+      .top-header { flex-direction: column; align-items: stretch; padding: 16px; }
+      .export-group { display: flex; gap: 8px; justify-content: space-between; width: 100%; }
+      .btn-export { flex: 1; }
+      
+      .content-card { padding: 16px; background: transparent; box-shadow: none; gap: 16px; }
+      .stat-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .stat-box { padding: 14px; }
+      .stat-val { font-size: 1.3rem; }
+      .chart-wrapper { padding: 14px; border-radius: 12px; }
+      .search-box { max-width: 100%; }
+
+      .tabel-desktop { display: none; }
+      .mobile-cards-container { display: flex; flex-direction: column; gap: 12px; flex-grow: 1; }
+      
+      .m-card { background: var(--card-bg); border-radius: 12px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f0f7f0; display: flex; align-items: center; gap: 12px; border-left: 4px solid var(--secondary-color); }
+      .m-card.warn { border-left-color: var(--warning-color); }
+      .m-card.habis { border-left-color: var(--danger-color); }
+      
+      .m-card-img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; border: 1px solid #f0f0f0; }
+      .m-card-no-img { width: 50px; height: 50px; border-radius: 8px; background: #fafafa; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #999; border: 1px solid #eee; }
+      .m-card-info { flex: 1; min-width: 0; }
+      .m-title { font-weight: 700; font-size: 0.95rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+      .m-cat { font-size: 0.75rem; color: var(--text-muted); }
+      .m-card-right { text-align: right; }
+      .m-price { font-size: 0.85rem; font-weight: 700; color: var(--primary-color); margin-bottom: 4px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar" class="d-none d-md-flex">
+    <div class="sidebar-brand">
+      <img src="../assets/img/logo2.png" alt="Logo">
+      <span>Jualin</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="produk.html">Data Produk</a></li>
+      <li><a href="user.html">Manajemen User</a></li>
+      <li><a href="laporan.html" class="active">Laporan</a></li>
+      <li><a href="bahan_baku.html">Bahan Baku</a></li>
+      <li><a href="resep_produk.html">Resep Produk</a></li>
+    </ul>
+    <a href="#" onclick="logout()" class="btn-logout">Keluar Sesi</a>
+  </div>
+
+  <div class="m-navbar d-md-none">
+    <span><img src="../assets/img/logo2.png" alt="Logo" height="24"> Jualin</span>
+    <button class="btn-menu" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">Menu</button>
+  </div>
+
+  <div class="offcanvas offcanvas-start" id="mobileSidebar" style="background:#1e293b;">
+    <div class="offcanvas-header border-bottom border-secondary">
+      <h5 class="offcanvas-title text-white fw-bold d-flex align-items-center gap-2">
+        <img src="../assets/img/logo2.png" width="28"> Jualin
+      </h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column">
+      <ul class="sidebar-menu mt-2 flex-grow-1">
+        <li><a href="produk.html">Data Produk</a></li>
+        <li><a href="user.html">Manajemen User</a></li>
+        <li><a href="laporan.html"  class="active" >Laporan</a></li>
+        <li><a href="bahan_baku.html">Bahan Baku</a></li>
+        <li><a href="resep_produk.html">Resep Produk</a></li>
+      </ul>
+      <a href="#" onclick="logout()" class="btn-logout mt-4">Keluar Sesi</a>
+    </div>
+  </div>
+
+  <div class="main-wrapper">
+    
+    <div class="top-header">
+      <div>
+        <h1 class="header-title">Laporan Stok Produk</h1>
+        <div class="header-subtitle">Pemantauan ketersediaan unit dan valuasi produk</div>
+      </div>
+      <div class="export-group">
+        <a id="btnPdf" href="#" class="btn-export danger">Ekspor PDF</a>
+        <a id="btnExcel" href="#" class="btn-export primary">Ekspor Excel</a>
+      </div>
+    </div>
+
+    <div class="content-card">
+      
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-label">Variasi Produk</div>
+          <div class="stat-val" id="sTotalProduk">0</div>
+        </div>
+        <div class="stat-box b2">
+          <div class="stat-label">Total Unit Stok</div>
+          <div class="stat-val" id="sTotalStok">0</div>
+        </div>
+        <div class="stat-box b3">
+          <div class="stat-label">Stok Menipis</div>
+          <div class="stat-val warn" id="sStokWarn">0</div>
+        </div>
+        <div class="stat-box b4">
+          <div class="stat-label">Rata-rata Stok</div>
+          <div class="stat-val" id="sRataStok">0</div>
+        </div>
+      </div>
+
+      <div class="chart-wrapper">
+        <div class="toolbar-section">
+          <h3 class="toolbar-title">Grafik Ketersediaan Stok</h3>
+          <div class="chart-toggles">
+            <button class="chart-btn active" id="btnBar" onclick="switchChart('bar')">Batang</button>
+            <button class="chart-btn" id="btnLine" onclick="switchChart('line')">Garis</button>
+          </div>
+        </div>
+        <div class="chart-scroll-container">
+          <div id="chartContainer" class="chart-canvas-container">
+            <canvas id="stokChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-column flex-grow-1">
+        <div class="toolbar-section">
+          <h3 class="toolbar-title">Rincian Data Produk</h3>
+          <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Pencarian nama produk...">
+          </div>
+        </div>
+
+        <div class="tabel-desktop">
+          <table class="table-modern">
+            <thead>
+              <tr>
+                <th>Kode</th>
+                <th class="text-center">Visual</th>
+                <th>Nama Produk</th>
+                <th>Kategori</th>
+                <th class="text-center">Sisa Stok</th>
+                <th class="text-end">Harga Jual</th>
+              </tr>
+            </thead>
+            <tbody id="stokTable">
+              <tr><td colspan="6" class="text-center py-4 text-muted fw-bold">Memuat data sistem...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mobile-cards-container" id="mobileCardList">
+          <div class="text-center text-muted fw-bold py-4">Memuat data sistem...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let allData     = [];
+    let chartInst   = null;
+    let currentType = 'bar';
+    const STOK_WARN = 5;
+
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "../login.html";
+    }
+
+    async function loadStok() {
+      const id_toko = sessionStorage.getItem("admin_id_toko");
+      if (!id_toko) { window.location.href = "../login.html"; return; }
+
+      const base = "../../Backend/laporan/export_laporan_stok.php";
+      document.getElementById("btnPdf").href   = `${base}?type=pdf&id_toko=${id_toko}`;
+      document.getElementById("btnExcel").href = `${base}?type=excel&id_toko=${id_toko}`;
+
+      try {
+        const res  = await fetch(`../../Backend/laporan/stok.php?id_toko=${id_toko}`);
+        allData = await res.json();
+        if (!Array.isArray(allData) || allData.length === 0) {
+          const emptyMsg = `<tr><td colspan="6" class="text-center py-4 text-muted fw-bold">Data kosong</td></tr>`;
+          document.getElementById("stokTable").innerHTML = emptyMsg;
+          document.getElementById("mobileCardList").innerHTML = `<div class="text-center text-muted fw-bold py-4">Data kosong</div>`;
+          return;
+        }
+        renderAll(allData);
+      } catch (err) {
+        document.getElementById("stokTable").innerHTML = `<tr><td colspan="6" class="text-danger text-center fw-bold">Gagal memuat data server</td></tr>`;
+      }
+    }
+
+    function renderAll(data) {
+      renderTable(data);
+      renderMobileCards(data);
+      renderStatCards(data);
+      renderChart(data);
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById("stokTable");
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Pencarian tidak ditemukan</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(p => {
+        const stok = parseInt(p.STOK);
+        const isHabis = stok <= 0;
+        const isWarn = stok > 0 && stok <= STOK_WARN;
+        const badgeCls = isHabis ? 'stok-habis' : isWarn ? 'stok-warn' : 'stok-aman';
+        const statusText = isHabis ? 'Habis' : isWarn ? 'Menipis' : 'Aman';
+        const imgUrl = p.GAMBAR ? `../../Backend/uploads/produk/${p.GAMBAR}` : null;
+        
+        return `
+          <tr>
+            <td>${p.KODE_PRODUK}</td>
+            <td class="text-center">
+              ${imgUrl ? `<img src="${imgUrl}" class="produk-img-modern" alt="${p.NAMA_PRODUK}">` : `<div style="width:44px;height:44px;border-radius:10px;background:#f5f5f5;display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;border:1px solid #eee;">Foto</div>`}
+            </td>
+            <td class="fw-bold" style="color:var(--text-main)">${p.NAMA_PRODUK}</td>
+            <td>${p.KATEGORI || '-'}</td>
+            <td class="text-center"><span class="stok-badge ${badgeCls}">${stok} Unit</span></td>
+            <td class="text-end fw-bold" style="color:var(--primary-color)">Rp ${parseInt(p.HARGA_JUAL).toLocaleString("id-ID")}</td>
+          </tr>`;
+      }).join("");
+    }
+
+    function renderMobileCards(data) {
+      const el = document.getElementById("mobileCardList");
+      if (!data.length) {
+        el.innerHTML = `<div class="text-center text-muted fw-bold py-4">Pencarian tidak ditemukan</div>`;
+        return;
+      }
+      el.innerHTML = data.map(p => {
+        const stok = parseInt(p.STOK);
+        const isHabis = stok <= 0;
+        const isWarn = stok > 0 && stok <= STOK_WARN;
+        const cardCls = isHabis ? 'habis' : isWarn ? 'warn' : '';
+        const badgeCls = isHabis ? 'stok-habis' : isWarn ? 'stok-warn' : 'stok-aman';
+        const imgUrl = p.GAMBAR ? `../../Backend/uploads/produk/${p.GAMBAR}` : null;
+        
+        return `
+          <div class="m-card ${cardCls}">
+            ${imgUrl ? `<img src="${imgUrl}" class="m-card-img" alt="${p.NAMA_PRODUK}">` : `<div class="m-card-no-img">Foto</div>`}
+            <div class="m-card-info">
+              <div class="m-title">${p.NAMA_PRODUK}</div>
+              <div class="m-cat">${p.KATEGORI || '-'}</div>
+            </div>
+            <div class="m-card-right">
+              <div class="m-price">Rp ${parseInt(p.HARGA_JUAL).toLocaleString("id-ID")}</div>
+              <div><span class="stok-badge ${badgeCls}">${stok} Unit</span></div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    function renderStatCards(data) {
+      const totalStok = data.reduce((a, p) => a + parseInt(p.STOK), 0);
+      const stokWarn  = data.filter(p => parseInt(p.STOK) <= STOK_WARN).length;
+      document.getElementById("sTotalProduk").innerText = data.length.toLocaleString("id-ID");
+      document.getElementById("sTotalStok").innerText   = totalStok.toLocaleString("id-ID");
+      document.getElementById("sStokWarn").innerText    = stokWarn.toLocaleString("id-ID");
+      document.getElementById("sRataStok").innerText    = data.length ? Math.round(totalStok / data.length).toLocaleString("id-ID") : 0;
+    }
+
+    function renderChart(data) {
+      const chartContainer = document.getElementById("chartContainer");
+      const ctx = document.getElementById("stokChart").getContext("2d");
+      const isBar = currentType === 'bar';
+
+      // Dinamisasi lebar kanvas agar bisa di-scroll jika produk banyak
+      if (data.length > 0) {
+        const minWidthPerItem = 45; // lebar minimum setiap batang
+        const calculatedWidth = data.length * minWidthPerItem;
+        chartContainer.style.width = `max(100%, ${calculatedWidth}px)`;
+      }
+
+      if (chartInst) chartInst.destroy();
+
+      const stokValues = data.map(p => parseInt(p.STOK));
+      const labels     = data.map(p => p.NAMA_PRODUK);
+
+      const barColors  = stokValues.map(s => s <= 0 ? "rgba(211,47,47,0.85)" : s <= STOK_WARN ? "rgba(245,124,0,0.85)" : "rgba(76,175,80,0.85)");
+      const borderCols = stokValues.map(s => s <= 0 ? "#c62828" : s <= STOK_WARN ? "#e65100" : "#2e7d32");
+
+      const grad = ctx.createLinearGradient(0, 0, 0, 300);
+      grad.addColorStop(0, "rgba(76,175,80,0.3)"); grad.addColorStop(1, "rgba(76,175,80,0)");
+
+      chartInst = new Chart(ctx, {
+        type: currentType,
+        data: {
+          labels,
+          datasets: [{
+            label: "Jumlah Stok", 
+            data: stokValues,
+            backgroundColor: isBar ? barColors : grad, 
+            borderColor: isBar ? borderCols : "#2e7d32",
+            borderWidth: isBar ? 0 : 2, 
+            borderRadius: isBar ? 4 : 0, 
+            fill: !isBar, 
+            tension: 0.3,
+            pointBackgroundColor: "#fff",
+            pointBorderColor: borderCols,
+            pointBorderWidth: 2,
+            pointRadius: isBar ? 0 : 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true, 
+          maintainAspectRatio: false,
+          plugins: { 
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "rgba(0,0,0,0.8)",
+              padding: 10,
+              callbacks: {
+                label: ctx => {
+                  const s = ctx.raw;
+                  const status = s <= 0 ? "Habis" : s <= STOK_WARN ? "Menipis" : "Aman";
+                  return ` Stok: ${s} Unit (${status})`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { 
+              grid: { display: false }, 
+              ticks: { 
+                font: {size: 11}, 
+                color: '#888',
+                maxRotation: 45,
+                minRotation: 45,
+                callback: function(val, idx) {
+                  const label = this.getLabelForValue(val);
+                  return label.length > 12 ? label.substring(0, 10) + "…" : label;
+                }
+              } 
+            },
+            y: { 
+              grid: { color: "#f0f0f0" }, 
+              ticks: { font: {size: 11}, color: '#888', stepSize: 1 },
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    function switchChart(type) {
+      currentType = type;
+      document.getElementById("btnBar").classList.toggle("active", type === "bar");
+      document.getElementById("btnLine").classList.toggle("active", type === "line");
+      renderChart(allData);
+    }
+
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+      const kw = e.target.value.toLowerCase();
+      const filtered = allData.filter(p => p.NAMA_PRODUK.toLowerCase().includes(kw));
+      renderTable(filtered);
+      renderMobileCards(filtered);
+      // Grafik tidak di-filter real-time agar struktur tidak melompat-lompat, 
+      // bisa ditambahkan renderChart(filtered) jika diperlukan filter pada grafik juga.
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if(!sessionStorage.getItem("admin_nama")) window.location.href = "../login.html";
+      loadStok();
+    });
+  </script>
+</body>
+</html>

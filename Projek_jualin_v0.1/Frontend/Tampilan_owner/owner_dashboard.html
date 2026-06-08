@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Owner - Jualin POS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* =========================================
+       GLOBAL & LAYOUT
+       ========================================= */
+    body {
+      margin: 0; background-color: #d4f5d1;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #1a2e1a; min-height: 100vh; display: flex;
+    }
+
+    #sidebar {
+      width: 250px; position: fixed; top: 0; left: 0; height: 100vh;
+      background: #1b5e20; border-right: 1px solid rgba(255,255,255,0.05);
+      padding: 24px 16px; z-index: 100; display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+    #sidebar::-webkit-scrollbar { width: 4px; }
+    #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; padding: 0 10px; }
+    .sidebar-brand img { width: 34px; height: 34px; }
+    .sidebar-brand span { font-size: 1.25rem; font-weight: 800; color: #a5d6a7; letter-spacing: 0.5px; }
+
+    .sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+    .menu-section { font-size: 0.7rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; padding: 12px 16px 4px; font-weight: 700; }
+    .sidebar-menu li a {
+      display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 10px;
+      color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem; font-weight: 500; 
+      transition: all 0.2s; margin-bottom: 4px;
+    }
+    .sidebar-menu li a:hover, .sidebar-menu li a.active { background: rgba(165,214,167,0.15); color: #fff; font-weight: 600;}
+
+    .sidebar-user { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; margin-top: 20px;}
+    .user-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #388e3c, #4CAF50); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #fff; font-weight: 800; }
+    .user-info { display: flex; flex-direction: column; }
+    .user-name { font-size: 0.85rem; font-weight: 700; color: #fff; }
+    .user-role { font-size: 0.7rem; color: rgba(255,255,255,0.5); }
+
+    .btn-logout { background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.2); color: #ff6b6b; font-weight: 700; border-radius: 10px; padding: 10px; text-decoration: none; text-align: center; display: block; transition: 0.2s; font-size: 0.9rem;}
+    .btn-logout:hover { background: #f44336; color: #fff; }
+
+    /* =========================================
+       MAIN CONTENT
+       ========================================= */
+    .main-wrapper {
+      margin-left: 250px; width: calc(100% - 250px); min-height: 100vh;
+      display: flex; flex-direction: column; padding: 24px; gap: 20px;
+    }
+
+    .top-header {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+      background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px);
+      padding: 18px 24px; border-radius: 20px; box-shadow: 0 4px 15px rgba(27, 94, 32, 0.05);
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .header-title { margin: 0; font-weight: 800; font-size: 1.4rem; color: #1b5e20; }
+    .header-subtitle { font-size: 0.85rem; color: #4a6741; margin-top: 4px; font-weight: 500; }
+    .header-date { font-size: 0.85rem; font-weight: 700; color: #2e7d32; background: #e8f5e9; padding: 8px 16px; border-radius: 10px; }
+
+    .content-card {
+      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+      border-radius: 20px; padding: 24px; box-shadow: 0 8px 32px rgba(27, 94, 32, 0.06);
+      flex-grow: 1; display: flex; flex-direction: column; gap: 24px;
+    }
+
+    /* Stats Grid */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .stat-box {
+      background: #fff; border-radius: 16px; padding: 20px;
+      border: 1px solid #e8f5e9; box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+      display: flex; flex-direction: column; gap: 6px; position: relative; overflow: hidden;
+    }
+    .stat-box::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:#4CAF50; }
+    .stat-box.b2::before { background: #e53935; }
+    .stat-box.b3::before { background: #F57C00; }
+    .stat-box.b4::before { background: #1976D2; }
+    .stat-label { font-size: 0.75rem; color: #888; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-val { font-size: 1.5rem; font-weight: 800; color: #1a2e1a; line-height: 1.2; }
+    .stat-val.danger { color: #e53935; }
+    .stat-link { font-size: 0.85rem; font-weight: 700; color: #F57C00; text-decoration: none; margin-top: 4px; display: inline-block;}
+    .stat-link:hover { text-decoration: underline; }
+
+    /* Chart Wrapper */
+    .chart-wrapper {
+      background: #f9fdf9; border-radius: 16px; padding: 20px;
+      border: 1px solid #e8f5e9;
+    }
+    .toolbar-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;}
+    .toolbar-title { font-size: 1.1rem; font-weight: 800; color: #1b5e20; margin: 0; }
+    .toolbar-sub { font-size: 0.8rem; color: #888; margin-top: 2px;}
+    
+    .chart-toggles { display: flex; gap: 8px; background: #fff; padding: 4px; border-radius: 12px; border: 1px solid #e8f5e9; }
+    .chart-btn { border: none; background: transparent; color: #888; padding: 6px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: 0.2s;}
+    .chart-btn.active { background: #4CAF50; color: #fff; }
+
+    /* Laporan Grid (Navigation Cards) */
+    .laporan-section-title { font-size: 1rem; font-weight: 800; color: #2e7d32; margin-top: 10px; border-bottom: 2px solid #e8f5e9; padding-bottom: 8px; }
+    .laporan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .laporan-card {
+      background: #fff; border-radius: 14px; padding: 18px;
+      border: 1px solid #e8f5e9; box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+      text-decoration: none; color: inherit; transition: all 0.3s;
+      display: flex; flex-direction: column; gap: 6px;
+      border-top: 4px solid #4CAF50;
+    }
+    .laporan-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(76,175,80,0.12); border-color: #c8e6c9;}
+    .laporan-card.c2 { border-top-color: #e53935; }
+    .laporan-card.c3 { border-top-color: #F57C00; }
+    .laporan-card.c4 { border-top-color: #1976D2; }
+    .lc-judul { font-size: 0.95rem; font-weight: 800; color: #1b5e20; }
+    .lc-desc { font-size: 0.8rem; color: #666; line-height: 1.4; }
+
+    /* Mobile View */
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      .main-wrapper { margin-left: 0; padding: 16px; padding-top: 80px; width: 100%; }
+      .m-navbar {
+        position: fixed; top: 0; left: 0; right: 0; background: rgba(27, 94, 32, 0.95); backdrop-filter: blur(12px);
+        z-index: 99; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;
+      }
+      .m-navbar span { color: #fff; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;}
+      .m-navbar img { height: 28px; }
+      .btn-menu { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem;}
+      
+      .top-header { flex-direction: column; align-items: stretch; gap: 12px; }
+      .header-date { text-align: center; }
+      .content-card { padding: 16px; background: transparent; box-shadow: none; gap: 16px;}
+      .stat-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .stat-box { padding: 16px; }
+      .stat-val { font-size: 1.25rem; }
+      .chart-wrapper { padding: 14px; }
+      .laporan-grid { grid-template-columns: 1fr; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar" class="d-none d-md-flex">
+    <div class="sidebar-brand">
+      <img src="../assets/img/logo2.png" alt="Logo">
+      <span>Jualin</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li class="menu-section">Penjualan</li>
+      <li><a href="owner_dashboard.html" class="active">Dashboard Utama</a></li>
+      <li><a href="owner_laporan_Penjualan_produk_harian.html">Penjualan Harian</a></li>
+      <li><a href="owner_laporan_Penjualan_produk_bulanan.html">Penjualan Bulanan</a></li>
+      <li><a href="owner_laporan_penjualan.html">Analisis Produk</a></li>
+
+      <li class="menu-section">Keuangan</li>
+      <li><a href="owner_laporan_laba_rugi_harian.html">Laba Rugi Harian</a></li>
+      <li><a href="owner_laporan_laba_rugi_bulanan.html">Laba Rugi Bulanan</a></li>
+      <li><a href="owner_laporan_laba_rugi.html">Margin Produk</a></li>
+      <li><a href="owner_laporan_arus_kas.html">Arus Kas</a></li>
+
+      <li class="menu-section">Inventaris</li>
+      <li><a href="owner_laporan_stok.html">Stok Produk</a></li>
+      <li><a href="owner_laporan_stok_bahan.html">Stok Bahan Baku</a></li>
+    </ul>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="avatarChar">O</div>
+      <div class="user-info">
+        <span class="user-name" id="ownerNama">Owner</span>
+        <span class="user-role">Administrator</span>
+      </div>
+    </div>
+    <a href="#" onclick="logout()" class="btn-logout">Keluar Sesi</a>
+  </div>
+
+  <div class="m-navbar d-md-none">
+    <span><img src="../assets/img/logo2.png" alt="Logo"> Jualin</span>
+    <button class="btn-menu" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">Menu</button>
+  </div>
+
+  <div class="offcanvas offcanvas-start" id="mobileSidebar" style="background:#1e293b;">
+    <div class="offcanvas-header border-bottom border-secondary">
+      <h5 class="offcanvas-title text-white fw-bold d-flex align-items-center gap-2">
+        <img src="../assets/img/logo2.png" width="28"> Jualin
+      </h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column" style="padding: 0;">
+      <ul class="sidebar-menu p-3 flex-grow-1">
+        <li class="menu-section" style="padding-left:0;">Penjualan</li>
+        <li><a href="owner_dashboard.html" class="active">Dashboard Utama</a></li>
+        <li><a href="owner_laporan_Penjualan_produk_harian.html">Penjualan Harian</a></li>
+        <li><a href="owner_laporan_Penjualan_produk_bulanan.html">Penjualan Bulanan</a></li>
+        <li><a href="owner_laporan_penjualan.html">Analisis Produk</a></li>
+
+        <li class="menu-section" style="padding-left:0; margin-top:10px;">Keuangan</li>
+        <li><a href="owner_laporan_laba_rugi_harian.html">Laba Rugi Harian</a></li>
+        <li><a href="owner_laporan_laba_rugi_bulanan.html">Laba Rugi Bulanan</a></li>
+        <li><a href="owner_laporan_laba_rugi.html">Margin Produk</a></li>
+        <li><a href="owner_laporan_arus_kas.html">Arus Kas</a></li>
+
+        <li class="menu-section" style="padding-left:0; margin-top:10px;">Inventaris</li>
+        <li><a href="owner_laporan_stok.html">Stok Produk</a></li>
+        <li><a href="owner_laporan_stok_bahan.html">Stok Bahan Baku</a></li>
+      </ul>
+      <div class="p-3">
+        <a href="#" onclick="logout()" class="btn-logout">Keluar Sesi</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-wrapper">
+    
+    <div class="top-header">
+      <div>
+        <h1 class="header-title">Ringkasan Hari Ini</h1>
+        <div class="header-subtitle" id="headerSub">Sinkronisasi data operasional...</div>
+      </div>
+      <div class="header-date" id="headerTanggal"></div>
+    </div>
+
+    <div class="content-card">
+      
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-label">Total Penjualan</div>
+          <div class="stat-val" id="sPenjualan">-</div>
+        </div>
+        <div class="stat-box b2">
+          <div class="stat-label">Beban Modal</div>
+          <div class="stat-val danger" id="sModal">-</div>
+        </div>
+        <div class="stat-box b3">
+          <div class="stat-label">Transaksi Hari ini</div>
+          <a href="owner_laporan_Penjualan_produk_harian.html" class="stat-link">Inspeksi Rincian</a>
+        </div>
+        <div class="stat-box b4">
+          <div class="stat-label">Total Keuntungan</div>
+          <div class="stat-val" id="sLaba">-</div>
+        </div>
+      </div>
+
+      <div class="chart-wrapper">
+        <div class="toolbar-section mb-2">
+          <div>
+            <h3 class="toolbar-title">Penjualan 7 Hari</h3>
+            <div class="toolbar-sub">Distribusi rasio margin dan pendapatan</div>
+          </div>
+          <div class="chart-toggles">
+            <button class="chart-btn active" id="btnBar" onclick="switchChart('bar')">Bar</button>
+            <button class="chart-btn" id="btnLine" onclick="switchChart('line')">Line</button>
+          </div>
+        </div>
+        <canvas id="chartPenjualan" style="max-height:260px;"></canvas>
+      </div>
+
+      <div class="laporan-section-title">Direktori Penjualan</div>
+      <div class="laporan-grid">
+        <a href="owner_laporan_Penjualan_produk_harian.html" class="laporan-card">
+          <div class="lc-judul">Siklus Harian</div>
+          <div class="lc-desc">Rekapitulasi transaksi operasional per hari</div>
+        </a>
+        <a href="owner_laporan_Penjualan_produk_bulanan.html" class="laporan-card">
+          <div class="lc-judul">Siklus Bulanan</div>
+          <div class="lc-desc">Pendapatan dalam skala bulan</div>
+        </a>
+        <a href="owner_laporan_penjualan.html" class="laporan-card">
+          <div class="lc-judul">Analisis SKU</div>
+          <div class="lc-desc">Evaluasi metrik volume per jenis produk</div>
+        </a>
+      </div>
+
+      <div class="laporan-section-title" style="color:#c62828;">Direktori Finansial</div>
+      <div class="laporan-grid">
+        <a href="owner_laporan_laba_rugi_harian.html" class="laporan-card c2">
+          <div class="lc-judul">Margin Harian</div>
+          <div class="lc-desc">Kalkulasi selisih pendapatan dan beban modal</div>
+        </a>
+        <a href="owner_laporan_laba_rugi_bulanan.html" class="laporan-card c2">
+          <div class="lc-judul">Margin Bulanan</div>
+          <div class="lc-desc">Kalkulasi profitabilitas skala makro</div>
+        </a>
+        <a href="owner_laporan_laba_rugi.html" class="laporan-card c2">
+          <div class="lc-judul">Profitabilitas SKU</div>
+          <div class="lc-desc">Evaluasi tingkat margin per spesifikasi barang</div>
+        </a>
+        <a href="owner_laporan_arus_kas.html" class="laporan-card c3">
+          <div class="lc-judul">Arus Kas</div>
+          <div class="lc-desc">Pencatatan sirkulasi debit dan kredit</div>
+        </a>
+      </div>
+
+      <div class="laporan-section-title" style="color:#1976D2;">Direktori Inventaris</div>
+      <div class="laporan-grid">
+        <a href="owner_laporan_stok.html" class="laporan-card c4">
+          <div class="lc-judul">Stok Produk</div>
+          <div class="lc-desc">Monitoring posisi stok barang siap jual</div>
+        </a>
+        <a href="owner_laporan_stok_bahan.html" class="laporan-card c4">
+          <div class="lc-judul">Stok Bahan Baku</div>
+          <div class="lc-desc">Monitoring volume bahan baku dan estimasi habis</div>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const BASE    = "../../Backend/laporan/";
+    const id_toko = sessionStorage.getItem("owner_id_toko");
+    const nama    = sessionStorage.getItem("owner_nama");
+
+    if (!id_toko || !nama) {
+      window.location.href = "../login.html";
+    }
+
+    document.getElementById("ownerNama").textContent  = nama;
+    document.getElementById("avatarChar").textContent = nama[0].toUpperCase();
+    
+    const now = new Date();
+    const bulan = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+    document.getElementById("headerTanggal").textContent = now.getDate() + " " + bulan[now.getMonth()] + " " + now.getFullYear();
+
+    let chartInst = null;
+    let chartType = 'bar';
+    let harian    = [];
+
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "../login.html";
+    }
+
+    function shortRp(v) {
+      v = parseFloat(v || 0);
+      if (v >= 1e9) return "Rp " + (v/1e9).toFixed(1).replace(".",",") + "M";
+      if (v >= 1e6) return "Rp " + (v/1e6).toFixed(1).replace(".",",") + "jt";
+      if (v >= 1e3) return "Rp " + (v/1e3).toFixed(0) + "rb";
+      return "Rp " + v.toLocaleString("id-ID");
+    }
+
+    async function loadDashboard() {
+      try {
+        const resLR = await axios.get(`${BASE}laba_rugi_harian.php?id_toko=${id_toko}`);
+        harian = resLR.data || [];
+
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayData = harian.find(d => d.tanggal === todayStr) || null;
+
+        const elLaba = document.getElementById("sLaba");
+        if (todayData) {
+          const laba   = parseFloat(todayData.laba || 0);
+          const untung = laba >= 0;
+          document.getElementById("sPenjualan").textContent = shortRp(todayData.total_penjualan);
+          document.getElementById("sModal").textContent     = shortRp(todayData.total_modal);
+          elLaba.textContent = (untung ? "+" : "") + shortRp(laba);
+          elLaba.className   = "stat-val " + (untung ? "" : "danger");
+          document.getElementById("headerSub").textContent  = "Sistem sinkron, data operasional hari ini valid.";
+        } else {
+          document.getElementById("sPenjualan").textContent = "Rp 0";
+          document.getElementById("sModal").textContent     = "Rp 0";
+          elLaba.textContent = "Rp 0";
+          elLaba.className   = "stat-val";
+          document.getElementById("headerSub").textContent  = "Sistem sinkron, belum ada entri transaksi hari ini.";
+        }
+
+        requestAnimationFrame(() => renderChart(harian));
+      } catch(e) {
+        document.getElementById("headerSub").textContent = "Kendala koneksi dalam memuat data.";
+      }
+    }
+
+    function renderChart(data) {
+      const d7     = [...data].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal)).slice(0, 7);
+      const labels = d7.map(d => d.tanggal);
+      const jual   = d7.map(d => parseFloat(d.total_penjualan || 0));
+      const laba   = d7.map(d => parseFloat(d.laba || 0));
+      const isBar  = chartType === 'bar';
+      const ctx    = document.getElementById("chartPenjualan").getContext("2d");
+      
+      if (chartInst) chartInst.destroy();
+
+      const gradGreen = ctx.createLinearGradient(0, 0, 0, 300);
+      gradGreen.addColorStop(0, "rgba(76,175,80,0.3)"); gradGreen.addColorStop(1, "rgba(76,175,80,0)");
+      
+      const gradPurple = ctx.createLinearGradient(0, 0, 0, 300);
+      gradPurple.addColorStop(0, "rgba(123,31,162,0.3)"); gradPurple.addColorStop(1, "rgba(123,31,162,0)");
+
+      chartInst = new Chart(ctx, {
+        type: isBar ? 'bar' : 'line',
+        data: {
+          labels,
+          datasets: [
+            { label:"Pendapatan", data:jual, backgroundColor:isBar?"rgba(56,142,60,0.85)":gradGreen, borderColor:"#388e3c", borderWidth:isBar?0:2, fill:!isBar, tension:0.4, pointRadius:isBar?0:3, borderRadius:isBar?6:0 },
+            { label:"Laba",       data:laba, backgroundColor:isBar?"rgba(123,31,162,0.85)":gradPurple, borderColor:"#7b1fa2", borderWidth:isBar?0:2, fill:!isBar, tension:0.4, pointRadius:isBar?0:3, borderRadius:isBar?6:0 }
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio: false,
+          interaction:{ mode:"index", intersect:false },
+          plugins:{
+            legend:{ position:"bottom", labels:{ font:{size:11}, boxWidth:12 } },
+            tooltip:{ callbacks:{ label: c => " Rp " + c.parsed.y.toLocaleString("id-ID") } }
+          },
+          scales:{
+            x:{ grid: { display: false }, ticks:{ font:{size:10} } },
+            y:{ grid: { color: "rgba(0,0,0,0.04)" }, ticks:{ font:{size:10}, callback: v => v>=1e6?(v/1e6).toFixed(1)+"jt":v>=1e3?(v/1e3).toFixed(0)+"rb":v } }
+          }
+        }
+      });
+    }
+
+    function switchChart(type) {
+      chartType = type;
+      document.getElementById("btnBar").classList.toggle("active",  type==="bar");
+      document.getElementById("btnLine").classList.toggle("active", type==="line");
+      requestAnimationFrame(() => renderChart(harian));
+    }
+
+    if (document.readyState === 'complete') {
+      loadDashboard();
+    } else {
+      window.addEventListener('load', loadDashboard);
+    }
+  </script>
+</body>
+</html>
