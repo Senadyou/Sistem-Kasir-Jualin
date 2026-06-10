@@ -313,7 +313,7 @@
       }
     }
 
-    /* ── MODAL PEMBAYARAN ── */
+    /* ── MODAL UI ── */
     .modal-content { border-radius: 16px; border: none; box-shadow: var(--shadow-md); }
     .modal-header { background: var(--surface); border-bottom: 1px solid var(--border-color); padding: 20px 24px; }
     .modal-title { font-weight: 800; color: var(--text-main); font-size: 1.2rem; margin: 0; }
@@ -347,7 +347,7 @@
 
   <div class="m-navbar d-lg-none">
     <div class="m-brand">
-      <img src="../assets/img/logo2.png" alt="Logo">
+      <img src="../assets/img/logo.png" alt="Logo">
       Jualin 
     </div>
     <div class="d-flex gap-2">
@@ -390,7 +390,7 @@
     
     <div class="product-area">
       <div class="product-grid" id="product-list">
-        </div>
+      </div>
     </div>
   </main>
 
@@ -462,7 +462,41 @@
           </select>
         </div>
         <div class="modal-footer">
-          <button class="btn-bayar" onclick="confirmPayment()" style="padding: 14px;">Selesaikan Transaksi</button>
+          <button class="btn-bayar" onclick="confirmPayment()" style="padding: 14px;">Bayar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalCetakBluetooth" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden; box-shadow: var(--shadow-md);">
+        <div class="modal-header" style="background: var(--primary-dark); color: white; border: none; padding: 16px 20px;">
+          <h5 class="modal-title fw-bold" style="font-size: 1.1rem; color: white;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-printer-fill me-2" viewBox="0 0 16 16">
+              <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zm6 8H5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/>
+              <path d="M0 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1v-2a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2H2a2 2 0 0 1-2-2V7zm2.5 1a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+            </svg>
+            Cetak Struk Bluetooth
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-4">
+            <label class="form-label fw-bold text-muted" style="font-size: 0.85rem;">Perangkat Bluetooth (Web API)</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bluetooth"><path fill-rule="evenodd" d="m8.543 3.948 1.316 1.316L8.543 6.58V3.948Zm0 8.104 1.316-1.316L8.543 9.42v2.632Zm-1.41-4.043L4.275 5.133l.827-.827L7.377 6.58V1.128l4.137 4.136L8.787 8l2.727 2.736-4.137 4.137V9.42l-2.275 2.274-.827-.827 2.858-2.858z"/></svg></span>
+              <input type="text" class="form-control fw-bold" id="statusBluetooth" value="Belum Terhubung" readonly style="background: #f8f9fa;">
+            </div>
+            <small class="text-danger mt-1 d-block" style="font-size: 0.75rem;">*Browser akan memunculkan popup pencarian perangkat saat Anda klik Cari/Cetak.</small>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-4">
+            <button type="button" class="btn text-success fw-bold p-0" onclick="hubungkanBluetooth()" style="border: none; background: transparent;">CARI PERANGKAT</button>
+            <div>
+              <button type="button" class="btn text-muted fw-bold me-2" data-bs-dismiss="modal">BATAL</button>
+              <button type="button" class="btn text-success fw-bold" id="btnCetakAksi" onclick="eksekusiCetakLangsung()">CETAK</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -474,6 +508,11 @@
   let cart = [];
   let total = 0;
   let allProducts = []; 
+  
+  // Variabel Mesin Cetak Bluetooth
+  let currentTrxData = null; 
+  let bluetoothDevice = null;
+  let bluetoothCharacteristic = null;
 
   document.addEventListener("DOMContentLoaded", () => {
     const nama = sessionStorage.getItem("kasir_nama");
@@ -619,17 +658,14 @@
 
     const fmtTotal = "Rp " + parseInt(total).toLocaleString("id-ID");
     
-    // Update Text Desktop
     document.getElementById("total-desktop").innerText = fmtTotal;
     document.getElementById("cart-count-desktop").innerText = `${totalItems} Item`;
     
-    // Update Text Mobile
     document.getElementById("total-mobile-sheet").innerText = fmtTotal;
     document.getElementById("cart-count-fab").innerText = totalItems;
     
-    // Animate FAB
     fab.classList.remove("pulse");
-    void fab.offsetWidth; // trigger reflow
+    void fab.offsetWidth; 
     fab.classList.add("pulse");
   }
 
@@ -673,6 +709,33 @@
     .then(res => res.json())
     .then(res => {
       if (res.status === "success") {
+        
+        // PENGELOLAAN DATA CETAK: Format tanggal & Simpan data detail struk sebelum keranjang dikosongkan.
+        let now = new Date();
+        let formatTgl = now.getFullYear() + '-' + 
+                        String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(now.getDate()).padStart(2, '0') + ' ' + 
+                        String(now.getHours()).padStart(2, '0') + ':' + 
+                        String(now.getMinutes()).padStart(2, '0') + ':' + 
+                        String(now.getSeconds()).padStart(2, '0');
+
+        let trxDataToPrint = {
+            KODE_TRANSAKSI: res.kode_transaksi,
+            TANGGAL: formatTgl,
+            TOTAL: res.total,
+            METODE: res.metode,
+            ITEMS: [...cart].map(c => ({
+                nama: c.nama,
+                jumlah: c.jumlah,
+                harga: c.harga,
+                subtotal: c.harga * c.jumlah
+            }))
+        };
+
+        // Tutup modal bayar & refresh stok produk
+        bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+        loadProducts(sessionStorage.getItem("kasir_id_toko"));
+
         Swal.fire({
           icon: 'success',
           title: 'Transaksi Sukses',
@@ -683,27 +746,21 @@
               <div><b>Nominal:</b> Rp ${parseInt(res.total).toLocaleString("id-ID")}</div>
             </div>
           `,
-          showDenyButton: true,
           showCancelButton: true,
           confirmButtonText: 'Cetak Struk',
-          denyButtonText: 'Tanda Bukti',
           cancelButtonText: 'Tutup',
           confirmButtonColor: '#3bb54a',
-          denyButtonColor: '#1976d2',
           cancelButtonColor: '#888'
         }).then((result) => {
           if (result.isConfirmed) {
-            sessionStorage.setItem("lastTransaction", JSON.stringify(res));
-            window.open("struk.html?kode=" + res.kode_transaksi, "_blank");
-          } else if (result.isDenied) {
-            sessionStorage.setItem("lastTransaction", JSON.stringify(res));
-            window.open("tanda_bukti.html?kode=" + res.kode_transaksi, "_blank");
+            // Aksi Cetak Langsung (Direct Print Modal)
+            currentTrxData = trxDataToPrint; 
+            let printModal = new bootstrap.Modal(document.getElementById('modalCetakBluetooth'));
+            printModal.show();
           }
-          
-          bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-          loadProducts(sessionStorage.getItem("kasir_id_toko"));
         });
         
+        // Reset Keranjang
         cart = [];
         updateCartUI();
       } else {
@@ -713,6 +770,158 @@
     .catch(err => {
       Swal.fire({ icon: 'error', title: 'Gangguan Jaringan', text: "Mohon periksa koneksi internet Anda.", confirmButtonColor: '#3bb54a' });
     });
+  }
+
+  // ==========================================
+  // CORE ENGINE: ESC/POS & WEB BLUETOOTH API
+  // ==========================================
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  async function hubungkanBluetooth() {
+      try {
+          const elStatus = document.getElementById("statusBluetooth");
+          elStatus.value = "Mencari perangkat...";
+
+          bluetoothDevice = await navigator.bluetooth.requestDevice({
+              acceptAllDevices: true,
+              optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2']
+          });
+
+          elStatus.value = "Menghubungkan ke " + bluetoothDevice.name + "...";
+          
+          const server = await bluetoothDevice.gatt.connect();
+          const services = await server.getPrimaryServices();
+          let service = services[0]; 
+          const characteristics = await service.getCharacteristics();
+          
+          bluetoothCharacteristic = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
+
+          if(bluetoothCharacteristic) {
+               elStatus.value = bluetoothDevice.name + " (Terhubung)";
+               elStatus.style.color = "var(--primary-dark)";
+          } else {
+               throw new Error("Gagal mendapatkan akses penulisan ke Printer.");
+          }
+      } catch (error) {
+          console.error("Bluetooth Error:", error);
+          document.getElementById("statusBluetooth").value = "Koneksi Gagal/Dibatalkan";
+          alert("Gagal menghubungkan: " + error.message);
+      }
+  }
+
+  async function eksekusiCetakLangsung() {
+      if (!bluetoothCharacteristic) {
+          await hubungkanBluetooth();
+          if(!bluetoothCharacteristic) return; 
+      }
+
+      if (!currentTrxData) {
+          alert("Data transaksi belum siap.");
+          return;
+      }
+
+      const btnAksi = document.getElementById("btnCetakAksi");
+      btnAksi.innerText = "MENCETAK...";
+      btnAksi.disabled = true;
+
+      try {
+          const receiptBytes = generateESCPOS(currentTrxData);
+          const CHUNK_SIZE = 40; 
+          
+          for (let i = 0; i < receiptBytes.length; i += CHUNK_SIZE) {
+              const chunk = receiptBytes.slice(i, i + CHUNK_SIZE);
+              await bluetoothCharacteristic.writeValue(chunk);
+              await sleep(20); 
+          }
+
+          let modalEl = document.getElementById('modalCetakBluetooth');
+          let modalObj = bootstrap.Modal.getInstance(modalEl);
+          modalObj.hide();
+          
+      } catch (error) {
+          console.error("Print Error:", error);
+          alert("Koneksi bluetooth terputus saat mencetak. Pastikan jarak printer dekat.");
+      } finally {
+          btnAksi.innerText = "CETAK";
+          btnAksi.disabled = false;
+      }
+  }
+
+  function generateESCPOS(trx) {
+      let bytes = [];
+      const kasirNama = sessionStorage.getItem("kasir_nama") || "Kasir";
+      
+      const encoder = new TextEncoder();
+      const writeText = (text) => {
+          const encoded = encoder.encode(text);
+          encoded.forEach(b => bytes.push(b));
+      };
+      const writeCmd = (cmdArr) => {
+          cmdArr.forEach(b => bytes.push(b));
+      };
+
+      const CMD_FLUSH_INIT = [0x0A, 0x1B, 0x40]; 
+      const CMD_ALIGN_CENTER = [0x1B, 0x61, 0x01];
+      const CMD_ALIGN_LEFT = [0x1B, 0x61, 0x00];
+      const CMD_BOLD_ON = [0x1B, 0x45, 0x01];
+      const CMD_BOLD_OFF = [0x1B, 0x45, 0x00];
+      
+      const CMD_TEXT_NORMAL = [0x1D, 0x21, 0x00]; 
+      const CMD_TEXT_DOUBLE_HEIGHT = [0x1D, 0x21, 0x01]; 
+      
+      writeCmd(CMD_FLUSH_INIT);
+
+      writeCmd(CMD_ALIGN_CENTER);
+      writeCmd(CMD_TEXT_DOUBLE_HEIGHT); 
+      writeCmd(CMD_BOLD_ON);
+      writeText("BUKTI PEMBAYARAN\n");
+      writeCmd(CMD_TEXT_NORMAL);
+      writeCmd(CMD_BOLD_OFF);
+      writeText("--------------------------------\n");
+
+      writeCmd(CMD_ALIGN_LEFT);
+      writeText(`Waktu : ${trx.TANGGAL}\n`);
+      writeText(`No Ref: ${trx.KODE_TRANSAKSI}\n`);
+      writeText(`Kasir : ${kasirNama}\n`);
+      writeText("--------------------------------\n");
+
+      trx.ITEMS.forEach(item => {
+          writeCmd(CMD_BOLD_ON);
+          writeText(`${item.nama}\n`); 
+          writeCmd(CMD_BOLD_OFF);
+          
+          const hargaSatuan = item.harga || (item.subtotal / item.jumlah);
+          const calcText = `${item.jumlah} x ${parseInt(hargaSatuan).toLocaleString("id-ID")}`;
+          const subText = `${parseInt(item.subtotal).toLocaleString("id-ID")}`;
+          
+          let spaces = 32 - calcText.length - subText.length;
+          if(spaces < 1) spaces = 1; 
+          
+          writeText(calcText + " ".repeat(spaces) + subText + "\n");
+      });
+      
+      writeText("--------------------------------\n");
+
+      writeCmd(CMD_BOLD_ON);
+      const totalLabel = "TOTAL";
+      const totalValue = `Rp ${parseInt(trx.TOTAL).toLocaleString("id-ID")}`;
+      let spaceTotal = 32 - totalLabel.length - totalValue.length;
+      if(spaceTotal < 1) spaceTotal = 1;
+      
+      writeText(totalLabel + " ".repeat(spaceTotal) + totalValue + "\n");
+      writeCmd(CMD_BOLD_OFF);
+      
+      writeText(`Metode: ${trx.METODE.toUpperCase()}\n`);
+      writeText("\n"); 
+
+      writeCmd(CMD_ALIGN_CENTER);
+      writeText("Terima kasih atas kunjungan Anda\n");
+      writeText("Barang yang sudah dibeli\n");
+      writeText("tidak dapat dikembalikan.\n");
+      
+      writeText("\n\n\n");
+      
+      return new Uint8Array(bytes);
   }
 </script>
 </body>
