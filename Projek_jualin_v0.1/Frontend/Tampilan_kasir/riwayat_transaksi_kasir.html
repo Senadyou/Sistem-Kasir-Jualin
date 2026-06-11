@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riwayat Transaksi - Jualin POS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3bb54a;
+      --primary-dark: #2e8b39;
+      --primary-light: #e8f5e9;
+      --bg-color: #f4fbf4;
+      --surface: #ffffff;
+      --text-main: #1a2e1a;
+      --text-muted: #666666;
+      --border-color: #e0e0e0;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+      --radius: 12px;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg-color);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: var(--text-main);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .pos-sidebar {
+      width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+    }
+    .brand-area {
+      height: 70px; display: flex; align-items: center; padding: 0 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .brand-area img { height: 32px; margin-right: 10px; }
+    .brand-area span { font-weight: 800; font-size: 1.2rem; color: var(--primary-dark); }
+    
+    .nav-menu { padding: 20px 12px; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; padding: 12px 16px;
+      color: var(--text-muted); text-decoration: none;
+      font-weight: 600; font-size: 0.95rem; border-radius: 8px;
+      margin-bottom: 8px; transition: 0.2s;
+    }
+    .nav-item.active { background: var(--primary-light); color: var(--primary-dark); }
+    .nav-item:hover:not(.active) { background: #f9f9f9; color: var(--text-main); }
+    
+    .user-area { padding: 20px; border-top: 1px solid var(--border-color); }
+    .user-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 12px; display: block; }
+    .btn-logout {
+      width: 100%; background: #ffebee; color: #c62828; border: none;
+      padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
+    }
+    .btn-logout:hover { background: #ffcdd2; }
+
+    /* ── MAIN CONTENT ── */
+    .pos-main {
+      flex: 1; margin-left: 220px; display: flex; flex-direction: column; width: 100%;
+    }
+    
+    .top-toolbar {
+      height: 70px; background: var(--surface); border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+      position: sticky; top: 0; z-index: 90;
+    }
+    .page-title { font-weight: 800; font-size: 1.2rem; margin: 0; color: var(--text-main); }
+
+    .content-area { padding: 24px; display: flex; flex-direction: column; gap: 20px; flex: 1; }
+
+    /* ── FILTER SECTION ── */
+    .filter-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 20px 24px; box-shadow: var(--shadow-sm); border: 1px solid #f0f7f0;
+    }
+    .filter-label { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: block; }
+    .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: end; }
+    
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
+    .form-control {
+      background: var(--bg-color); border: 1px solid transparent; padding: 10px 14px;
+      border-radius: 8px; font-size: 0.9rem; font-weight: 500; transition: 0.2s;
+    }
+    .form-control:focus { outline: none; border-color: var(--primary); background: var(--surface); box-shadow: 0 0 0 3px rgba(59,181,74,0.1); }
+    
+    .btn-action {
+      background: var(--primary); color: #fff; border: none; padding: 10px 20px;
+      border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: 0.2s;
+    }
+    .btn-action:hover { background: var(--primary-dark); }
+    .btn-reset {
+      background: #f5f5f5; color: var(--text-main); border: none; padding: 10px 20px;
+      border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: 0.2s;
+    }
+    .btn-reset:hover { background: #e0e0e0; }
+    .filter-actions { display: flex; gap: 8px; }
+
+    /* ── INFO BAR ── */
+    .info-bar {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    }
+    .info-text { font-size: 1rem; font-weight: 600; color: var(--text-muted); }
+    .info-highlight { color: var(--primary-dark); font-weight: 800; }
+
+    /* ── TABLE DESKTOP ── */
+    .table-container {
+      background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm);
+      border: 1px solid #f0f7f0; overflow: hidden; flex: 1; display: flex; flex-direction: column;
+    }
+    .table-responsive { overflow-x: auto; flex: 1; }
+    .table { margin: 0; width: 100%; border-collapse: collapse; }
+    .table thead th {
+      background: #f9fbf9; color: var(--text-muted); font-size: 0.8rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px; padding: 16px 24px;
+      border-bottom: 2px solid var(--border-color); white-space: nowrap; position: sticky; top: 0; z-index: 10;
+    }
+    .table tbody td {
+      padding: 16px 24px; font-size: 0.95rem; color: var(--text-main); font-weight: 500;
+      vertical-align: middle; border-bottom: 1px solid #f0f0f0; white-space: nowrap;
+    }
+    .table tbody tr:hover td { background: #fcfdfc; }
+    .table tbody tr:last-child td { border-bottom: none; }
+    
+    .btn-detail {
+      background: #e8f5e9; color: var(--primary-dark); border: none; padding: 6px 16px;
+      border-radius: 6px; font-size: 0.85rem; font-weight: 700; text-decoration: none;
+      display: inline-flex; justify-content: center; align-items: center; transition: 0.2s;
+    }
+    .btn-detail:hover { background: var(--primary); color: #fff; }
+
+    /* ── MOBILE UI ── */
+    .m-navbar { display: none; }
+    .mobile-list { display: none; }
+
+    @media (max-width: 992px) {
+      body { flex-direction: column; } /* Mencegah layout menyamping di mobile */
+      .pos-sidebar { display: none; }
+      .pos-main { margin-left: 0; width: 100%; }
+      
+      .m-navbar {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--primary); padding: 14px 20px; color: #fff;
+        position: sticky; top: 0; z-index: 100; width: 100%;
+      }
+      .m-brand { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;}
+      .m-brand img { height: 28px; }
+      .m-menu-btn { background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 6px 12px; border-radius: 6px; font-weight: 600; }
+
+      .top-toolbar { display: none; }
+      .content-area { padding: 16px; }
+      
+      .filter-card { padding: 16px; }
+      .filter-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .filter-actions { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+      .btn-action, .btn-reset { width: 100%; }
+
+      .table-container { display: none; }
+      .mobile-list { display: flex; flex-direction: column; gap: 12px; }
+      
+      .m-card {
+        background: var(--surface); border-radius: var(--radius); padding: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid var(--primary);
+        display: flex; flex-direction: column; gap: 10px;
+      }
+      .m-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+      .m-card-id { font-weight: 800; font-size: 1rem; color: var(--text-main); }
+      .m-card-date { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+      .m-card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #fafafa; padding: 10px; border-radius: 8px; }
+      .m-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 2px; display: block;}
+      .m-val { font-size: 0.95rem; font-weight: 800; color: var(--text-main); }
+      .m-val.total { color: var(--primary-dark); }
+      .btn-detail { width: 100%; padding: 10px; margin-top: 4px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar Desktop -->
+  <aside class="pos-sidebar d-none d-lg-flex">
+    <div class="brand-area">
+      <img src="../assets/img/logo.png" alt="Logo">
+      <span>Jualin </span>
+    </div>
+    <nav class="nav-menu">
+      <a href="kasir.html" class="nav-item">Kasir</a>
+      <a href="#" class="nav-item active">Riwayat Transaksi</a>
+    </nav>
+    <div class="user-area">
+      <span class="user-name" id="user-name-desktop">Kasir</span>
+      <button class="btn-logout" onclick="logout()">Keluar Sesi</button>
+    </div>
+  </aside>
+
+  <!-- Navbar Mobile -->
+  <div class="m-navbar d-lg-none">
+    <div class="m-brand">
+      <img src="../assets/img/logo2.png" alt="Logo">
+      Jualin 
+    </div>
+    <button class="m-menu-btn" data-bs-toggle="offcanvas" data-bs-target="#sidebarMobile">Menu</button>
+  </div>
+
+  <!-- Offcanvas Mobile -->
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMobile">
+    <div class="offcanvas-header border-bottom">
+      <h5 class="offcanvas-title fw-bold">Jualin </h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-3 d-flex flex-column">
+      <nav class="nav flex-column gap-2 mb-auto">
+        <a class="nav-item" href="kasir.html" style="background:#f5f5f5; color:var(--text-main); padding:12px; border-radius:8px; text-decoration:none; font-weight:600;">Kasir</a>
+        <a class="nav-item active" href="#" style="background:var(--primary-light); color:var(--primary-dark); padding:12px; border-radius:8px; text-decoration:none; font-weight:600;">Riwayat Transaksi</a>
+      </nav>
+      <div class="mt-4">
+        <span class="user-name" id="user-name-mobile" style="font-weight:700; margin-bottom:12px; display:block;">Kasir</span>
+        <button class="btn-logout" onclick="logout()">Keluar Sesi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="pos-main">
+    
+    <div class="top-toolbar">
+      <h1 class="page-title">Riwayat Transaksi</h1>
+    </div>
+
+    <div class="content-area">
+      
+      <div class="filter-card">
+        <span class="filter-label">Filter Waktu Transaksi</span>
+        <div class="filter-grid">
+          <div class="form-group">
+            <label>Tanggal Mulai</label>
+            <input type="date" id="start-date" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Tanggal Akhir</label>
+            <input type="date" id="end-date" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Waktu Mulai</label>
+            <input type="time" id="start-time" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Waktu Akhir</label>
+            <input type="time" id="end-time" class="form-control">
+          </div>
+          <div class="filter-actions">
+            <button class="btn-action" onclick="filterTanggal()">Terapkan</button>
+            <button class="btn-reset" onclick="tampilSemuaData()">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-bar">
+        <span class="info-text">Menampilkan: <span class="info-highlight" id="infoTanggal">Memuat data sistem...</span></span>
+      </div>
+
+      <!-- Desktop Table -->
+      <div class="table-container d-none d-lg-flex">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID Transaksi</th>
+                <th>Waktu Transaksi</th>
+                <th>Metode Pembayaran</th>
+                <th>Total Nominal</th>
+                <th class="text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="transaction-list">
+              <tr><td colspan="5" class="text-center py-4 text-muted fw-bold">Memuat data sistem...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Mobile List -->
+      <div class="mobile-list d-lg-none" id="mobile-transaction-list">
+        <!-- Data dirender melalui JS -->
+      </div>
+
+    </div>
+  </main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  let allData = [];
+
+  function ensureKasirAuth() {
+    const nama = sessionStorage.getItem("kasir_nama");
+    const role = sessionStorage.getItem("kasir_role");
+    const id_toko = sessionStorage.getItem("kasir_id_toko");
+    if (!nama || role !== "Kasir" || !id_toko) {
+      window.location.href = "../login.html";
+      return false;
+    }
+    const elDesk = document.getElementById("user-name-desktop");
+    const elMob  = document.getElementById("user-name-mobile");
+    if (elDesk) elDesk.innerText = nama;
+    if (elMob)  elMob.innerText = nama;
+    return true;
+  }
+
+  function logout() {
+    sessionStorage.removeItem("kasir_id");
+    sessionStorage.removeItem("kasir_nama");
+    sessionStorage.removeItem("kasir_role");
+    sessionStorage.removeItem("kasir_token");
+    window.location.href = "../login.html";
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    if (!ensureKasirAuth()) return;
+    loadTransactions();
+  });
+
+  async function loadTransactions() {
+    try {
+      const id_toko = sessionStorage.getItem("kasir_id_toko");
+      const res = await fetch(`../../Backend/transaksi/lihat_transaksi.php?id_toko=${id_toko}`);
+      const data = await res.json();
+
+      allData = data.sort((a, b) => new Date(b.TANGGAL) - new Date(a.TANGGAL));
+      tampilHariTerbaru();
+    } catch (err) {
+      console.error(err);
+      document.getElementById("transaction-list").innerHTML = `<tr><td colspan="5" class="text-center text-danger fw-bold py-4">Gagal memuat data</td></tr>`;
+      document.getElementById("mobile-transaction-list").innerHTML = `<div class="text-center text-danger fw-bold py-4">Gagal memuat data</div>`;
+    }
+  }
+
+  function tampilHariTerbaru() {
+    document.getElementById("start-date").value = "";
+    document.getElementById("end-date").value = "";
+    document.getElementById("start-time").value = "";
+    document.getElementById("end-time").value = "";
+
+    if (!allData.length) {
+      updateInfoBar("Data tidak ditemukan");
+      renderUI([]);
+      return;
+    }
+
+    const tanggalTerbaru = allData[0].TANGGAL.split(" ")[0];
+    const filtered = allData.filter(trx => trx.TANGGAL.split(" ")[0] === tanggalTerbaru);
+
+    updateInfoBar(`Hari Ini (${formatTanggal(tanggalTerbaru)}) — ${filtered.length} Transaksi`);
+    renderUI(filtered);
+  }
+
+  function tampilSemuaData() {
+    document.getElementById("start-date").value = "";
+    document.getElementById("end-date").value = "";
+    document.getElementById("start-time").value = "";
+    document.getElementById("end-time").value = "";
+    updateInfoBar(`Semua Waktu — ${allData.length} Transaksi`);
+    renderUI(allData);
+  }
+
+  function updateInfoBar(teks) {
+    document.getElementById("infoTanggal").textContent = teks;
+  }
+
+  function formatTanggal(str) {
+    const bulan = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+    const d = new Date(str);
+    if (isNaN(d)) return str;
+    return d.getDate() + " " + bulan[d.getMonth()] + " " + d.getFullYear();
+  }
+
+  function filterTanggal() {
+    const startDate = document.getElementById("start-date").value;
+    const endDate   = document.getElementById("end-date").value;
+    const startTime = document.getElementById("start-time").value;
+    const endTime   = document.getElementById("end-time").value;
+
+    if (!startDate && !endDate && !startTime && !endTime) {
+      tampilHariTerbaru();
+      return;
+    }
+
+    const filtered = allData.filter(trx => {
+      let [tgl, jam] = trx.TANGGAL.split(" ");
+      if (!jam) jam = "00:00:00";
+      if (startDate && tgl < startDate) return false;
+      if (endDate   && tgl > endDate)   return false;
+      if (startTime && tgl === startDate && jam < startTime) return false;
+      if (endTime   && tgl === endDate   && jam > endTime)   return false;
+      return true;
+    });
+
+    const label = startDate && endDate
+      ? formatTanggal(startDate) + " s/d " + formatTanggal(endDate)
+      : startDate ? "Mulai " + formatTanggal(startDate)
+      : endDate   ? "Hingga " + formatTanggal(endDate)
+      : "Filter Waktu";
+
+    updateInfoBar(`${label} — ${filtered.length} Transaksi`);
+    renderUI(filtered);
+  }
+
+  function renderUI(data) {
+    const tbody = document.getElementById("transaction-list");
+    const mobileList = document.getElementById("mobile-transaction-list");
+
+    tbody.innerHTML = "";
+    mobileList.innerHTML = "";
+
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Data tidak ditemukan</td></tr>`;
+      mobileList.innerHTML = `<div class="text-center text-muted py-4">Data tidak ditemukan</div>`;
+      return;
+    }
+
+    data.forEach(trx => {
+      // Desktop Row
+      let tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="fw-bold">${trx.KODE_TRANSAKSI}</td>
+        <td>${trx.TANGGAL}</td>
+        <td>${trx.METODE.toUpperCase()}</td>
+        <td class="fw-bold" style="color:var(--primary-dark)">Rp ${parseInt(trx.TOTAL).toLocaleString("id-ID")}</td>
+        <td class="text-center">
+          <a href="detail_transaksi_kasir.html?kode=${trx.KODE_TRANSAKSI}" class="btn-detail">Detail</a>
+        </td>`;
+      tbody.appendChild(tr);
+
+      // Mobile Card
+      let card = document.createElement("div");
+      card.className = "m-card";
+      card.innerHTML = `
+        <div class="m-card-header">
+          <span class="m-card-id">${trx.KODE_TRANSAKSI}</span>
+          <span class="m-card-date">${trx.TANGGAL}</span>
+        </div>
+        <div class="m-card-body">
+          <div>
+            <span class="m-label">Metode</span>
+            <span class="m-val">${trx.METODE.toUpperCase()}</span>
+          </div>
+          <div style="text-align: right;">
+            <span class="m-label">Nominal</span>
+            <span class="m-val total">Rp ${parseInt(trx.TOTAL).toLocaleString("id-ID")}</span>
+          </div>
+        </div>
+        <a href="detail_transaksi_kasir.html?kode=${trx.KODE_TRANSAKSI}" class="btn-detail">Detail</a>`;
+      mobileList.appendChild(card);
+    });
+  }
+</script>
+</body>
+</html>

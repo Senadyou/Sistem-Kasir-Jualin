@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Struk Pembayaran - Jualin POS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3bb54a;
+      --primary-dark: #2e8b39;
+      --primary-light: #e8f5e9;
+      --bg-color: #f4fbf4;
+      --surface: #ffffff;
+      --text-main: #1a2e1a;
+      --text-muted: #666666;
+      --border-color: #e0e0e0;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+      --radius: 12px;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg-color);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: var(--text-main);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .pos-sidebar {
+      width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+    }
+    .brand-area {
+      height: 70px; display: flex; align-items: center; padding: 0 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .brand-area img { height: 32px; margin-right: 10px; }
+    .brand-area span { font-weight: 800; font-size: 1.2rem; color: var(--primary-dark); }
+    
+    .nav-menu { padding: 20px 12px; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; padding: 12px 16px;
+      color: var(--text-muted); text-decoration: none;
+      font-weight: 600; font-size: 0.95rem; border-radius: 8px;
+      margin-bottom: 8px; transition: 0.2s;
+    }
+    .nav-item.active { background: var(--primary-light); color: var(--primary-dark); }
+    .nav-item:hover:not(.active) { background: #f9f9f9; color: var(--text-main); }
+    
+    .user-area { padding: 20px; border-top: 1px solid var(--border-color); }
+    .user-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 12px; display: block; }
+    .btn-logout {
+      width: 100%; background: #ffebee; color: #c62828; border: none;
+      padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
+    }
+    .btn-logout:hover { background: #ffcdd2; }
+
+    /* ── MAIN CONTENT ── */
+    .pos-main {
+      flex: 1; margin-left: 220px; display: flex; flex-direction: column; width: 100%;
+    }
+    
+    .top-toolbar {
+      height: 70px; background: var(--surface); border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+      position: sticky; top: 0; z-index: 90;
+    }
+    .page-title { font-weight: 800; font-size: 1.2rem; margin: 0; color: var(--text-main); }
+    .btn-back {
+      background: #f5f5f5; color: var(--text-main); border: none; padding: 8px 16px;
+      border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: 0.2s;
+      text-decoration: none; display: inline-block;
+    }
+    .btn-back:hover { background: #e0e0e0; color: var(--text-main); }
+
+    .content-area { 
+      padding: 32px 24px; display: flex; flex-direction: column; align-items: center; flex: 1; 
+    }
+
+    /* ── STRUK/RECEIPT DESIGN ── */
+    .struk-wrapper {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .struk-paper {
+      background: #ffffff;
+      width: 100%;
+      max-width: 360px;
+      padding: 24px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-color);
+      border-radius: 4px; 
+      font-family: 'Courier New', Courier, monospace; 
+      color: #000;
+      position: relative;
+    }
+    
+    .struk-paper::after {
+      content: "";
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background-size: 12px 12px;
+      background-image: radial-gradient(circle at 6px 0, transparent 6px, #ffffff 7px);
+      background-repeat: repeat-x;
+    }
+
+    .struk-header { text-align: center; margin-bottom: 16px; border-bottom: 1px dashed #000; padding-bottom: 12px; }
+    .struk-brand { font-size: 1.4rem; font-weight: bold; margin: 0 0 4px 0; }
+
+    .struk-meta { font-size: 0.85rem; margin-bottom: 16px; border-bottom: 1px dashed #000; padding-bottom: 12px; }
+    .struk-meta table { width: 100%; }
+    .struk-meta td { padding: 2px 0; }
+    .struk-meta td:last-child { text-align: right; }
+
+    .struk-table { width: 100%; font-size: 0.85rem; border-collapse: collapse; margin-bottom: 12px; }
+    .struk-table th { border-bottom: 1px dashed #000; padding: 6px 0; text-align: left; }
+    .struk-table th.right { text-align: right; }
+    .struk-table td { padding: 6px 0; vertical-align: top; }
+    .struk-table td.right { text-align: right; }
+    .struk-table tr.item-desc td { padding-top: 8px; padding-bottom: 0; font-weight: bold; }
+    .struk-table tr.item-calc td { padding-top: 0; padding-bottom: 8px; color: #555; }
+    
+    .struk-total { border-top: 1px dashed #000; padding-top: 12px; margin-top: 4px; font-size: 1rem; font-weight: bold; }
+    .struk-total table { width: 100%; }
+    .struk-total td { padding: 4px 0; }
+    .struk-total td:last-child { text-align: right; }
+
+    .struk-footer { text-align: center; font-size: 0.8rem; margin-top: 24px; color: #333; border-top: 1px dashed #000; padding-top: 16px; }
+    .struk-footer p { margin: 2px 0; }
+
+    /* ── PENGATURAN STRUK & AKSI ── */
+    .struk-settings-card {
+      background: var(--surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 24px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .struk-actions { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 10px; 
+      width: 100%; 
+    }
+    .btn-action {
+      width: 100%; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 0.95rem;
+      border: none; cursor: pointer; transition: 0.2s; text-align: center; text-decoration: none;
+    }
+    .btn-action.primary { background: var(--primary); color: #fff; }
+    .btn-action.primary:hover { background: var(--primary-dark); }
+    .btn-action.secondary { background: var(--primary-light); color: var(--primary-dark); border: 1px solid #c8e6c9; }
+    .btn-action.secondary:hover { background: #c8e6c9; }
+
+    .state-message { text-align: center; padding: 40px 20px; font-family: 'Segoe UI', sans-serif; font-weight: 600; color: var(--text-muted); font-size: 1rem; }
+
+    /* ── MOBILE UI ── */
+    .m-navbar { display: none; }
+
+    @media (max-width: 992px) {
+      body { flex-direction: column; }
+      .pos-sidebar { display: none; }
+      .pos-main { margin-left: 0; width: 100%; }
+      
+      .m-navbar {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--primary); padding: 14px 20px; color: #fff;
+        position: sticky; top: 0; z-index: 100; width: 100%;
+      }
+      .m-brand { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;}
+      .m-brand img { height: 28px; }
+      .m-menu-btn { background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 6px 12px; border-radius: 6px; font-weight: 600; }
+
+      .top-toolbar { display: none; }
+      .content-area { padding: 16px; }
+      
+      .btn-back-mobile {
+        display: block; width: 100%; max-width: 360px; background: #f5f5f5; color: var(--text-main);
+        text-align: center; padding: 12px; border-radius: 8px; font-weight: 600;
+        text-decoration: none; margin-bottom: 16px; margin-left: auto; margin-right: auto;
+      }
+    }
+    @media (min-width: 993px) {
+      .btn-back-mobile { display: none; }
+    }
+
+    @media print {
+      body * { visibility: hidden; }
+      #struk-box, #struk-box * { visibility: visible; }
+      #struk-box {
+        position: absolute; left: 0; top: 0;
+        width: 100% !important; max-width: 80mm !important; padding: 2mm !important; margin: 0 !important; border: none !important; box-shadow: none !important; background: #fff !important; font-family: 'Courier New', Courier, monospace !important; color: #000 !important;
+      }
+      .struk-brand { font-size: 16pt !important; margin: 0 0 5px 0 !important; }
+      .struk-meta, .struk-table, .struk-total, .struk-footer { font-size: 10pt !important; line-height: 1.2 !important; }
+      .struk-table { margin: 5px 0 !important; }
+      .struk-table td, .struk-table th { padding: 2px 0 !important; }
+      .struk-header, .struk-meta, .struk-total { margin-bottom: 5px !important; padding-bottom: 5px !important; }
+      .struk-paper::after { display: none; }
+      .pos-sidebar, .m-navbar, .top-toolbar, .struk-settings-card, .btn-back, .btn-back-mobile { display: none !important; }
+      @page { size: 80mm auto; margin: 0mm; }
+    }
+  </style>
+</head>
+<body>
+
+  <aside class="pos-sidebar d-none d-lg-flex">
+    <div class="brand-area">
+      <img src="../assets/img/logo.png" alt="Logo">
+      <span>Jualin </span>
+    </div>
+    <nav class="nav-menu">
+      <a href="kasir.html" class="nav-item">Kasir</a>
+      <a href="riwayat_transaksi_kasir.html" class="nav-item active">Riwayat Transaksi</a>
+    </nav>
+    <div class="user-area">
+      <span class="user-name" id="user-name-desktop">Kasir</span>
+      <button class="btn-logout" onclick="logout()">Keluar Sesi</button>
+    </div>
+  </aside>
+
+  <div class="m-navbar d-lg-none">
+    <div class="m-brand">
+      <img src="../assets/img/logo2.png" alt="Logo">
+      Jualin 
+    </div>
+    <button class="m-menu-btn" data-bs-toggle="offcanvas" data-bs-target="#sidebarMobile">Menu</button>
+  </div>
+
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMobile">
+    <div class="offcanvas-header border-bottom">
+      <h5 class="offcanvas-title fw-bold">Jualin </h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-3 d-flex flex-column">
+      <nav class="nav flex-column gap-2 mb-auto">
+        <a class="nav-item" href="kasir.html" style="background:#f5f5f5; color:var(--text-main); padding:12px; border-radius:8px; text-decoration:none; font-weight:600;">Kasir</a>
+        <a class="nav-item active" href="riwayat_transaksi_kasir.html" style="background:var(--primary-light); color:var(--primary-dark); padding:12px; border-radius:8px; text-decoration:none; font-weight:600;">Riwayat Transaksi</a>
+      </nav>
+      <div class="mt-4">
+        <span class="user-name" id="user-name-mobile" style="font-weight:700; margin-bottom:12px; display:block;">Kasir</span>
+        <button class="btn-logout" onclick="logout()">Keluar Sesi</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="pos-main">
+    <div class="top-toolbar">
+      <h1 class="page-title">Struk Pembayaran</h1>
+      <a href="#" id="btn-back-desktop" class="btn-back">Kembali</a>
+    </div>
+
+    <div class="content-area">
+      <a href="#" id="btn-back-mobile" class="btn-back-mobile">Kembali</a>
+      
+      <div class="struk-wrapper" id="struk-container">
+        <div class="state-message">Memuat data struk...</div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal fade" id="modalCetakBluetooth" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden;">
+        <div class="modal-header" style="background: var(--primary-dark); color: white; border: none; padding: 16px 20px;">
+          <h5 class="modal-title fw-bold" style="font-size: 1.1rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-printer-fill me-2" viewBox="0 0 16 16">
+              <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zm6 8H5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/>
+              <path d="M0 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1v-2a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2H2a2 2 0 0 1-2-2V7zm2.5 1a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+            </svg>
+            Cetak Struk
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          
+          <div class="mb-4">
+            <label class="form-label fw-bold text-muted" style="font-size: 0.85rem;">Perangkat Bluetooth (Web API)</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bluetooth"><path fill-rule="evenodd" d="m8.543 3.948 1.316 1.316L8.543 6.58V3.948Zm0 8.104 1.316-1.316L8.543 9.42v2.632Zm-1.41-4.043L4.275 5.133l.827-.827L7.377 6.58V1.128l4.137 4.136L8.787 8l2.727 2.736-4.137 4.137V9.42l-2.275 2.274-.827-.827 2.858-2.858z"/></svg></span>
+              <input type="text" class="form-control fw-bold" id="statusBluetooth" value="Belum Terhubung" readonly style="background: #f8f9fa;">
+            </div>
+            <small class="text-danger mt-1 d-block" style="font-size: 0.75rem;">*Browser akan memunculkan popup pencarian perangkat saat Anda klik Cari/Cetak.</small>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-4">
+            <button type="button" class="btn text-success fw-bold p-0" onclick="hubungkanBluetooth()" style="border: none; background: transparent;">CARI PERANGKAT</button>
+            <div>
+              <button type="button" class="btn text-muted fw-bold me-2" data-bs-dismiss="modal">BATAL</button>
+              <button type="button" class="btn text-success fw-bold" id="btnCetakAksi" onclick="eksekusiCetakLangsung()">CETAK</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+  let currentTrxData = null; 
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const nama    = sessionStorage.getItem("kasir_nama");
+    const id_toko = sessionStorage.getItem("kasir_id_toko");
+
+    if (!nama || !id_toko) {
+      window.location.href = "../login.html";
+      return;
+    }
+    
+    const elDesk = document.getElementById("user-name-desktop");
+    const elMob  = document.getElementById("user-name-mobile");
+    if (elDesk) elDesk.innerText = nama;
+    if (elMob)  elMob.innerText = nama;
+
+    const params = new URLSearchParams(window.location.search);
+    const kode   = params.get("kode");
+    if (kode) {
+      const backUrl = "detail_transaksi_kasir.html?kode=" + kode;
+      document.getElementById("btn-back-desktop").href = backUrl;
+      document.getElementById("btn-back-mobile").href = backUrl;
+    }
+
+    loadStrukData(id_toko, kode);
+  });
+
+  function loadStrukData(id_toko, kode) {
+    const container = document.getElementById("struk-container");
+
+    if (!kode) {
+      container.innerHTML = `<div class="state-message">Kode transaksi tidak ditemukan.</div>`;
+      return;
+    }
+
+    fetch(`../../Backend/transaksi/detail_transaksi.php?kode=${kode}&id_toko=${id_toko}`)
+      .then(res => res.json())
+      .then(trx => {
+        if (!trx || !trx.KODE_TRANSAKSI) {
+          container.innerHTML = `<div class="state-message">Data transaksi tidak ditemukan.</div>`;
+          return;
+        }
+        currentTrxData = trx; 
+        renderStruk(trx);
+      })
+      .catch(err => {
+        container.innerHTML = `<div class="state-message">Gagal memuat data transaksi.</div>`;
+        console.error(err);
+      });
+  }
+
+  function renderStruk(trx) {
+    const kasirNama = sessionStorage.getItem("kasir_nama") || "Kasir";
+    const parts = trx.TANGGAL.split(" ");
+    const tanggal = parts[0] || trx.TANGGAL;
+    const waktu = parts[1] || "";
+
+    let itemsHtml = "";
+    trx.ITEMS.forEach(item => {
+      const hargaSatuan = item.harga || (item.subtotal / item.jumlah);
+      itemsHtml += `
+        <tr class="item-desc">
+          <td colspan="2">${item.nama}</td>
+        </tr>
+        <tr class="item-calc">
+          <td>${item.jumlah} x ${parseInt(hargaSatuan).toLocaleString("id-ID")}</td>
+          <td class="right">${parseInt(item.subtotal).toLocaleString("id-ID")}</td>
+        </tr>
+      `;
+    });
+
+    const html = `
+      <div class="struk-paper" id="struk-box">
+        <div class="struk-header">
+          <h2 class="struk-brand">BUKTI PEMBAYARAN</h2>
+        </div>
+        <div class="struk-meta">
+          <table>
+            <tr><td>Waktu</td><td>${tanggal} ${waktu}</td></tr>
+            <tr><td>No Ref</td><td>${trx.KODE_TRANSAKSI}</td></tr>
+            <tr><td>Kasir</td><td>${kasirNama}</td></tr>
+          </table>
+        </div>
+        <table class="struk-table">
+          <thead><tr><th>Deskripsi</th><th class="right">Subtotal</th></tr></thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+        <div class="struk-total">
+          <table>
+            <tr><td>TOTAL</td><td>Rp ${parseInt(trx.TOTAL).toLocaleString("id-ID")}</td></tr>
+            <tr><td style="font-weight: normal; font-size: 0.85rem;">METODE</td><td style="font-weight: normal; font-size: 0.85rem;">${trx.METODE.toUpperCase()}</td></tr>
+          </table>
+        </div>
+        <div class="struk-footer">
+          <p>Terima kasih atas kunjungan Anda.</p>
+          <p>Barang yang sudah dibeli tidak dapat dikembalikan.</p>
+        </div>
+      </div>
+      <div class="struk-settings-card">
+        <div class="struk-actions">
+          <button class="btn-action secondary" onclick="downloadStruk()">Unduh Struk</button>
+          <button class="btn-action primary" data-bs-toggle="modal" data-bs-target="#modalCetakBluetooth">Cetak Struk</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("struk-container").innerHTML = html;
+  }
+
+  function logout() {
+    sessionStorage.removeItem("kasir_id");
+    sessionStorage.removeItem("kasir_nama");
+    window.location.href = "../login.html";
+  }
+
+  function downloadStruk() {
+    const struk = document.getElementById("struk-box");
+    const originalShadow = struk.style.boxShadow;
+    const originalBorder = struk.style.border;
+    
+    struk.style.boxShadow = "none";
+    struk.style.border = "none";
+
+    html2canvas(struk, { scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
+      struk.style.boxShadow = originalShadow;
+      struk.style.border = originalBorder;
+
+      const dataURL = canvas.toDataURL("image/jpeg", 1.0);
+      const link = document.createElement("a");
+      link.href = dataURL;
+      link.download = "struk_" + new Date().getTime() + ".jpg";
+      link.click();
+    });
+  }
+
+  // ==========================================
+  // CORE ENGINE: ESC/POS & WEB BLUETOOTH API
+  // ==========================================
+  let bluetoothDevice = null;
+  let bluetoothCharacteristic = null;
+
+  // UTILITAS PENTING: Sleep/Jeda agar printer tidak error karena buffer penuh
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  async function hubungkanBluetooth() {
+      try {
+          const elStatus = document.getElementById("statusBluetooth");
+          elStatus.value = "Mencari perangkat...";
+
+          bluetoothDevice = await navigator.bluetooth.requestDevice({
+              acceptAllDevices: true,
+              optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2']
+          });
+
+          elStatus.value = "Menghubungkan ke " + bluetoothDevice.name + "...";
+          
+          const server = await bluetoothDevice.gatt.connect();
+          const services = await server.getPrimaryServices();
+          let service = services[0]; 
+          const characteristics = await service.getCharacteristics();
+          
+          bluetoothCharacteristic = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
+
+          if(bluetoothCharacteristic) {
+               elStatus.value = bluetoothDevice.name + " (Terhubung)";
+               elStatus.style.color = "var(--primary-dark)";
+          } else {
+               throw new Error("Gagal mendapatkan akses penulisan ke Printer.");
+          }
+
+      } catch (error) {
+          console.error("Bluetooth Error:", error);
+          document.getElementById("statusBluetooth").value = "Koneksi Gagal/Dibatalkan";
+          alert("Gagal menghubungkan: " + error.message);
+      }
+  }
+
+  async function eksekusiCetakLangsung() {
+      if (!bluetoothCharacteristic) {
+          await hubungkanBluetooth();
+          if(!bluetoothCharacteristic) return; 
+      }
+
+      if (!currentTrxData) {
+          alert("Data transaksi belum siap.");
+          return;
+      }
+
+      const btnAksi = document.getElementById("btnCetakAksi");
+      btnAksi.innerText = "MENCETAK...";
+      btnAksi.disabled = true;
+
+      try {
+          const receiptBytes = generateESCPOS(currentTrxData);
+          
+          // KUNCI PERBAIKAN 1: MENCEGAH STUCK/BERHENTI DI TENGAH JALAN
+          // Turunkan ukuran potong ke 40 bytes agar RAM printer murah tidak kepenuhan.
+          const CHUNK_SIZE = 40; 
+          
+          for (let i = 0; i < receiptBytes.length; i += CHUNK_SIZE) {
+              const chunk = receiptBytes.slice(i, i + CHUNK_SIZE);
+              await bluetoothCharacteristic.writeValue(chunk);
+              
+              // KUNCI PERBAIKAN 2: Berikan jeda 20 milidetik per tembakan data
+              await sleep(20); 
+          }
+
+          let modalEl = document.getElementById('modalCetakBluetooth');
+          let modalObj = bootstrap.Modal.getInstance(modalEl);
+          modalObj.hide();
+          
+      } catch (error) {
+          console.error("Print Error:", error);
+          alert("Koneksi bluetooth terputus saat mencetak. Pastikan jarak printer dekat.");
+      } finally {
+          btnAksi.innerText = "CETAK";
+          btnAksi.disabled = false;
+      }
+  }
+
+  // ==========================================
+  // ESC/POS GENERATOR (TRANSLATOR TEKS KE PRINTER)
+  // ==========================================
+  function generateESCPOS(trx) {
+      let bytes = [];
+      const kasirNama = sessionStorage.getItem("kasir_nama") || "Kasir";
+      
+      const encoder = new TextEncoder();
+      const writeText = (text) => {
+          const encoded = encoder.encode(text);
+          encoded.forEach(b => bytes.push(b));
+      };
+      const writeCmd = (cmdArr) => {
+          cmdArr.forEach(b => bytes.push(b));
+      };
+
+      // KUNCI PERBAIKAN 3: FLUSH BUFFER
+      // Paksa baris baru (\n = 0x0A) dulu untuk membersihkan memori sisa dari crash sebelumnya (mencegah teks "Dims")
+      const CMD_FLUSH_INIT = [0x0A, 0x1B, 0x40]; 
+      
+      const CMD_ALIGN_CENTER = [0x1B, 0x61, 0x01];
+      const CMD_ALIGN_LEFT = [0x1B, 0x61, 0x00];
+      const CMD_BOLD_ON = [0x1B, 0x45, 0x01];
+      const CMD_BOLD_OFF = [0x1B, 0x45, 0x00];
+      
+      const CMD_TEXT_NORMAL = [0x1D, 0x21, 0x00]; 
+      // KUNCI PERBAIKAN 4: 0x01 = TINGGI GANDA (Mencegah "PEMBAYAR AN" terpotong karena melewati 32 Karakter)
+      const CMD_TEXT_DOUBLE_HEIGHT = [0x1D, 0x21, 0x01]; 
+      
+      // 1. Eksekusi Inisialisasi
+      writeCmd(CMD_FLUSH_INIT);
+
+      // 2. HEADER TOKO (Rapi & Tidak Terpotong)
+      writeCmd(CMD_ALIGN_CENTER);
+      writeCmd(CMD_TEXT_DOUBLE_HEIGHT); 
+      writeCmd(CMD_BOLD_ON);
+      writeText("BUKTI PEMBAYARAN\n");
+      writeCmd(CMD_TEXT_NORMAL);
+      writeCmd(CMD_BOLD_OFF);
+      writeText("--------------------------------\n");
+
+      // 3. META DATA
+      writeCmd(CMD_ALIGN_LEFT);
+      writeText(`Waktu : ${trx.TANGGAL}\n`);
+      writeText(`No Ref: ${trx.KODE_TRANSAKSI}\n`);
+      writeText(`Kasir : ${kasirNama}\n`);
+      writeText("--------------------------------\n");
+
+      // 4. DAFTAR ITEM (Dengan Kalkulasi Spasi Cerdas 32 Karakter)
+      trx.ITEMS.forEach(item => {
+          writeCmd(CMD_BOLD_ON);
+          writeText(`${item.nama}\n`); 
+          writeCmd(CMD_BOLD_OFF);
+          
+          const hargaSatuan = item.harga || (item.subtotal / item.jumlah);
+          const calcText = `${item.jumlah} x ${parseInt(hargaSatuan).toLocaleString("id-ID")}`;
+          const subText = `${parseInt(item.subtotal).toLocaleString("id-ID")}`;
+          
+          let spaces = 32 - calcText.length - subText.length;
+          if(spaces < 1) spaces = 1; // Minimal ada 1 spasi jika nama terlalu panjang
+          
+          writeText(calcText + " ".repeat(spaces) + subText + "\n");
+      });
+      
+      writeText("--------------------------------\n");
+
+      // 5. TOTAL
+      writeCmd(CMD_BOLD_ON);
+      const totalLabel = "TOTAL";
+      const totalValue = `Rp ${parseInt(trx.TOTAL).toLocaleString("id-ID")}`;
+      let spaceTotal = 32 - totalLabel.length - totalValue.length;
+      if(spaceTotal < 1) spaceTotal = 1;
+      
+      writeText(totalLabel + " ".repeat(spaceTotal) + totalValue + "\n");
+      writeCmd(CMD_BOLD_OFF);
+      
+      writeText(`Metode: ${trx.METODE.toUpperCase()}\n`);
+      writeText("\n"); 
+
+      // 6. FOOTER
+      writeCmd(CMD_ALIGN_CENTER);
+      writeText("Terima kasih atas kunjungan Anda\n");
+      writeText("Barang yang sudah dibeli\n");
+      writeText("tidak dapat dikembalikan.\n");
+      
+      // Dorong Kertas Keluar agar mudah disobek
+      writeText("\n\n\n");
+      
+      return new Uint8Array(bytes);
+  }
+</script>
+</body>
+</html>
