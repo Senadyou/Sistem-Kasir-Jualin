@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tambah Toko - Jualin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    :root {
+      --primary: #3bb54a;
+      --primary-dark: #1b5e20;
+      --primary-light: #e8f5e9;
+      --bg-color: #d4f5d1;
+      --surface: #ffffff;
+      --text-main: #1a2e1a;
+      --text-muted: #666666;
+      --border-color: #e0e0e0;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+      --radius: 12px;
+      --danger: #d32f2f;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg-color);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: var(--text-main);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .pos-sidebar {
+      width: 240px;
+      background: var(--primary-dark);
+      border-right: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+      padding: 24px 16px;
+    }
+    .brand-area { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; padding: 0 10px; }
+    .brand-area img { height: 32px; margin-right: 8px; }
+    .brand-area span { font-weight: 800; font-size: 1.25rem; color: #a5d6a7; letter-spacing: 0.5px; }
+    
+    .sidebar-badge {
+      font-size: 0.7rem; background: rgba(255,255,255,0.1); color: #fff;
+      font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 6px; margin-bottom: 24px; align-self: flex-start; margin-left: 10px;
+    }
+
+    .nav-menu { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      color: rgba(255,255,255,0.7); text-decoration: none;
+      font-weight: 600; font-size: 0.95rem; border-radius: 10px;
+      margin-bottom: 6px; transition: 0.2s;
+    }
+    .nav-item.active { background: rgba(165,214,167,0.2); color: #fff; }
+    .nav-item:hover:not(.active) { background: rgba(255,255,255,0.05); color: #fff; }
+    
+    .user-area { padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; }
+    .user-profile { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 0 8px; }
+    .user-avatar { width: 36px; height: 36px; background: #fff; color: var(--primary-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+    .user-info { display: flex; flex-direction: column; }
+    .user-name { font-weight: 700; font-size: 0.85rem; color: #fff; }
+    .user-role { font-size: 0.7rem; color: rgba(255,255,255,0.6); }
+
+    .btn-logout {
+      width: 100%; background: rgba(244, 67, 54, 0.1); color: #ff6b6b; border: 1px solid rgba(244, 67, 54, 0.2);
+      padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s;
+    }
+    .btn-logout:hover { background: #f44336; color: #fff; }
+
+    /* ── MAIN CONTENT ── */
+    .pos-main {
+      flex: 1; margin-left: 240px; display: flex; flex-direction: column; width: calc(100% - 240px);
+    }
+    
+    .top-toolbar {
+      height: 70px; background: var(--surface); border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+      position: sticky; top: 0; z-index: 90;
+    }
+    .page-title { font-weight: 800; font-size: 1.2rem; margin: 0; color: var(--text-main); }
+    
+    .content-area { padding: 24px; display: flex; flex-direction: column; align-items: center; flex: 1; }
+
+    /* ── FORM CARD ── */
+    .form-card {
+      background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 800px;
+      box-shadow: var(--shadow-sm); border: 1px solid #f0f7f0; padding: 32px;
+    }
+
+    .section-title {
+      font-size: 0.85rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+      color: var(--primary-dark); margin-bottom: 20px; padding-bottom: 10px;
+      border-bottom: 2px solid var(--primary-light);
+    }
+
+    .form-label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
+    .form-control {
+      background: var(--bg-color); border: 1px solid var(--border-color);
+      color: var(--text-main); border-radius: 8px; padding: 12px 16px;
+      font-size: 0.95rem; font-weight: 500; transition: 0.2s;
+    }
+    .form-control:focus {
+      background: var(--surface); border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59,181,74,0.1); outline: none;
+    }
+
+    .info-box {
+      background: var(--primary-light); border: 1px solid #c8e6c9; border-radius: 8px;
+      padding: 12px 16px; font-size: 0.85rem; color: var(--primary-dark); font-weight: 600;
+      margin-bottom: 24px; line-height: 1.5;
+    }
+
+    .action-group { display: flex; gap: 12px; margin-top: 32px; }
+    .btn-action {
+      flex: 1; padding: 14px; border-radius: 8px; font-weight: 700; font-size: 1rem;
+      border: none; cursor: pointer; transition: 0.2s; text-align: center; text-decoration: none;
+    }
+    .btn-action.primary { background: var(--primary); color: #fff; }
+    .btn-action.primary:hover { background: var(--primary-dark); }
+    .btn-action.secondary { background: #f5f5f5; color: var(--text-main); }
+    .btn-action.secondary:hover { background: #e0e0e0; color: var(--text-main); }
+
+    /* ── MOBILE UI ── */
+    .m-navbar { display: none; }
+
+    @media (max-width: 992px) {
+      body { flex-direction: column; }
+      .pos-sidebar { display: none; }
+      .pos-main { margin-left: 0; width: 100%; }
+      
+      .m-navbar {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--primary-dark); padding: 14px 20px; color: #fff;
+        position: sticky; top: 0; z-index: 100; width: 100%;
+      }
+      .m-brand { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;}
+      .m-brand img { height: 28px; }
+      .m-menu-btn { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 6px 12px; border-radius: 6px; font-weight: 600; }
+
+      .top-toolbar { display: none; }
+      .content-area { padding: 16px; }
+      
+      .form-card { padding: 20px; }
+      .action-group { flex-direction: column; }
+      .btn-action { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <aside class="pos-sidebar d-none d-lg-flex">
+    <div class="brand-area">
+      <img src="../assets/img/logo2.png" alt="Logo">
+      <span>Jualin</span>
+    </div>
+    <div class="sidebar-badge">Superadmin</div>
+    <ul class="nav-menu">
+      <a href="superadmin_dashboard.html" class="nav-item active">Kelola Toko</a>
+      <a href="superadmin_laporan.html" class="nav-item">Data Laporan</a>
+    </ul>
+    <div class="user-area">
+      <div class="user-profile">
+        <div class="user-avatar" id="avatarChar">S</div>
+        <div class="user-info">
+          <span class="user-name" id="sidebarUsername">Superadmin</span>
+          <span class="user-role">Sistem Administrator</span>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Keluar Sesi</button>
+    </div>
+  </aside>
+
+  <div class="m-navbar d-lg-none">
+    <div class="m-brand">
+      <img src="../assets/img/logo2.png" alt="Logo">
+      Jualin
+    </div>
+    <button class="m-menu-btn" data-bs-toggle="offcanvas" data-bs-target="#sidebarMobile">Menu</button>
+  </div>
+
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMobile" style="background: var(--primary-dark);">
+    <div class="offcanvas-header border-bottom border-secondary">
+      <h5 class="offcanvas-title text-white fw-bold d-flex align-items-center gap-2">
+        <img src="../assets/img/logo2.png" width="28"> Jualin
+      </h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column" style="padding: 0;">
+      <div class="p-3">
+        <span class="sidebar-badge" style="margin-left:0;">Superadmin</span>
+      </div>
+      <div class="nav-menu px-2">
+        <a href="superadmin_dashboard.html" class="nav-item active">Kelola Toko</a>
+        <a href="superadmin_laporan.html" class="nav-item">Data Laporan</a>
+      </div>
+      <div class="p-3 mt-auto border-top border-secondary">
+        <button class="btn-logout" onclick="logout()">Keluar Sesi</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="pos-main">
+    <div class="top-toolbar">
+      <h1 class="page-title">Registrasi Toko</h1>
+    </div>
+
+    <div class="content-area">
+      <div class="form-card">
+        
+        <div class="info-box">
+          Toko yang didaftarkan akan langsung aktif. Akses administrator otomatis dibuat sesuai konfigurasi di bawah ini.
+        </div>
+
+        <div class="section-title">Identitas Entitas</div>
+        <div class="row g-4 mb-4">
+          <div class="col-md-12">
+            <label class="form-label">Nama Toko</label>
+            <input type="text" class="form-control" id="nama_toko">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Kota Operasional</label>
+            <input type="text" class="form-control" id="kota">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Alamat Lengkap</label>
+            <input type="text" class="form-control" id="alamat">
+          </div>
+        </div>
+
+        <div class="section-title">Kredensial Administrator</div>
+        <div class="row g-4">
+          <div class="col-md-6">
+            <label class="form-label">Nama Pengguna</label>
+            <input type="text" class="form-control" id="admin_nama" autocomplete="off">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Kata Sandi</label>
+            <input type="password" class="form-control" id="admin_pass" autocomplete="new-password">
+          </div>
+        </div>
+
+        <div class="action-group">
+          <a href="superadmin_dashboard.html" class="btn-action secondary">Batal</a>
+          <button class="btn-action primary" onclick="simpanToko()">Simpan Data</button>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const username = sessionStorage.getItem("superadmin_username");
+    if (!sessionStorage.getItem("superadmin_id")) {
+      window.location.href = "login_superadmin.html";
+    }
+    
+    document.getElementById("sidebarUsername").textContent = username || "Superadmin";
+    document.getElementById("avatarChar").textContent = (username || "S")[0].toUpperCase();
+
+    function logout() {
+      sessionStorage.removeItem("superadmin_id");
+      sessionStorage.removeItem("superadmin_username");
+      window.location.href = "login_superadmin.html";
+    }
+
+    async function simpanToko() {
+      const nama_toko  = document.getElementById("nama_toko").value.trim();
+      const kota       = document.getElementById("kota").value.trim();
+      const alamat     = document.getElementById("alamat").value.trim();
+      const admin_nama = document.getElementById("admin_nama").value.trim();
+      const admin_pass = document.getElementById("admin_pass").value;
+
+      if (!nama_toko || !admin_nama || !admin_pass) {
+        Swal.fire({title: "Formulir Tidak Lengkap", text: "Kredensial utama dan nama toko wajib diisi.", icon: "warning", confirmButtonColor: "#3bb54a"});
+        return;
+      }
+      if (admin_pass.length < 6) {
+        Swal.fire({title: "Keamanan Sandi", text: "Kata sandi minimal 6 karakter.", icon: "warning", confirmButtonColor: "#3bb54a"});
+        return;
+      }
+
+      try {
+        const res = await fetch("../../Backend/superadmin/superadmin_toko.php", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nama_toko, kota, alamat, admin_nama, admin_pass })
+        });
+        const data = await res.json();
+
+        if (data.status) {
+          await Swal.fire({
+            title: "Registrasi Berhasil",
+            text: "Entitas toko dan akses administrator telah dibuat.",
+            icon: "success",
+            confirmButtonColor: "#3bb54a"
+          });
+          window.location.href = "superadmin_dashboard.html";
+        } else {
+          Swal.fire({title: "Kegagalan Sistem", text: data.message, icon: "error", confirmButtonColor: "#3bb54a"});
+        }
+      } catch (err) {
+        Swal.fire({title: "Kendala Jaringan", text: "Gagal terhubung ke server.", icon: "error", confirmButtonColor: "#3bb54a"});
+      }
+    }
+  </script>
+</body>
+</html>

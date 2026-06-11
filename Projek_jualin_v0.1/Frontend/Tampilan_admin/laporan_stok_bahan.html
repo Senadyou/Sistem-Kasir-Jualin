@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Bahan Baku - Jualin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0; background-color: #d4f5d1;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #1a2e1a; min-height: 100vh; display: flex;
+    }
+
+    #sidebar {
+      width: 240px; position: fixed; top: 0; left: 0; height: 100vh;
+      background: #1b5e20; border-right: 1px solid rgba(255,255,255,0.05);
+      padding: 24px 16px; z-index: 100; display: flex; flex-direction: column;
+    }
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; padding: 0 10px; }
+    .sidebar-brand img { width: 36px; height: 36px; }
+    .sidebar-brand span { font-size: 1.25rem; font-weight: 800; color: #a5d6a7; letter-spacing: 0.5px; }
+
+    .sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+    .sidebar-menu li a {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px;
+      color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.95rem; font-weight: 600; 
+      transition: all 0.25s; margin-bottom: 6px;
+    }
+    .sidebar-menu li a:hover, .sidebar-menu li a.active { background: rgba(165,214,167,0.2); color: #fff; }
+
+    .main-wrapper {
+      margin-left: 240px; width: calc(100% - 240px); min-height: 100vh;
+      display: flex; flex-direction: column; padding: 24px;
+    }
+
+    .top-header {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+      background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px);
+      padding: 18px 24px; border-radius: 20px; box-shadow: 0 4px 15px rgba(27, 94, 32, 0.05);
+      border: 1px solid rgba(255,255,255,0.5); margin-bottom: 24px;
+    }
+    .header-title { margin: 0; font-weight: 800; font-size: 1.4rem; color: #1b5e20; }
+    
+    .btn-back {
+      background: #fff; color: #1b5e20; font-weight: 700; border: 1px solid #c8e6c9;
+      padding: 8px 20px; border-radius: 10px; transition: all 0.3s; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem;
+    }
+    .btn-back:hover { background: #e8f5e9; border-color: #a5d6a7; }
+
+    .content-card {
+      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+      border-radius: 20px; padding: 24px; box-shadow: 0 8px 32px rgba(27, 94, 32, 0.06);
+      flex-grow: 1; display: flex; flex-direction: column; gap: 20px;
+    }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .stat-box {
+      background: #fff; border-radius: 16px; padding: 20px;
+      border: 1px solid #e8f5e9; box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+      display: flex; flex-direction: column; gap: 4px; position: relative; overflow: hidden;
+    }
+    .stat-box::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:#4CAF50; }
+    .stat-box.b2::before { background: #F57C00; }
+    .stat-box.b3::before { background: #e53935; }
+    .stat-box.b4::before { background: #1976D2; }
+    .stat-label { font-size: 0.75rem; color: #888; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-val { font-size: 1.6rem; font-weight: 800; color: #1a2e1a; line-height: 1.2; }
+    .stat-val.warn { color: #F57C00; }
+    .stat-val.danger { color: #e53935; }
+    .stat-val.blue { color: #1976D2; }
+
+    .tab-nav { display: flex; gap: 8px; flex-wrap: wrap; background: #f0f7f0; padding: 6px; border-radius: 14px; width: fit-content;}
+    .tab-nav-btn {
+      padding: 8px 24px; border-radius: 10px; font-size: 0.85rem; font-weight: 700;
+      border: none; background: transparent; color: #666; cursor: pointer; transition: 0.2s;
+    }
+    .tab-nav-btn.active { background: #fff; color: #2e7d32; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+    .chart-wrapper { background: #f9fdf9; border-radius: 16px; padding: 16px 20px; border: 1px solid #e8f5e9; }
+    .toolbar-section { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;}
+    .toolbar-title { font-size: 1.1rem; font-weight: 800; color: #1b5e20; margin: 0; }
+    
+    .search-box { position: relative; width: 100%; max-width: 300px; }
+    .search-box input {
+      width: 100%; background: #fff; border: 1px solid #dceede; border-radius: 12px;
+      padding: 10px 16px; font-size: 0.9rem; transition: all 0.3s;
+    }
+    .search-box input:focus { outline: none; border-color: #4CAF50; box-shadow: 0 0 0 4px rgba(76,175,80,0.1); }
+
+    .tabel-desktop { flex-grow: 1; overflow-y: auto; }
+    .table-modern { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: -8px; }
+    .table-modern thead th { border: none; background: #ffffff; color: #888; text-transform: uppercase; font-size: 0.75rem; font-weight: 700; padding: 12px 16px; position: sticky; top: 0; z-index: 10; }
+    .table-modern tbody tr { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: 0.2s; border: 1px solid #f0f7f0; }
+    .table-modern tbody tr:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(76,175,80,0.08); }
+    .table-modern tbody td { padding: 12px 16px; vertical-align: middle; color: #333; font-size: 0.9rem; border-top: 1px solid #f5fbf5; border-bottom: 1px solid #f5fbf5; }
+    .table-modern tbody td:first-child { border-left: 1px solid #f5fbf5; border-radius: 12px 0 0 12px; font-weight: bold; color: #888; }
+    .table-modern tbody td:last-child { border-right: 1px solid #f5fbf5; border-radius: 0 12px 12px 0; }
+
+    .stok-bar-wrap { background: #e8f5e9; border-radius: 10px; height: 8px; width: 100%; max-width: 120px; overflow: hidden; }
+    .stok-bar { height: 100%; background: #4CAF50; border-radius: 10px; transition: width 0.5s; }
+    .stok-bar.warn { background: #F57C00; }
+    .stok-bar.danger { background: #c62828; }
+
+    .mobile-cards-container { display: none; }
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      .main-wrapper { margin-left: 0; padding: 16px; padding-top: 80px; width: 100%; }
+      .m-navbar {
+        position: fixed; top: 0; left: 0; right: 0; background: rgba(27, 94, 32, 0.95); backdrop-filter: blur(12px);
+        z-index: 99; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;
+      }
+      .m-navbar span { color: #fff; font-weight: 800; font-size: 1.1rem; }
+      .btn-menu { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 6px 12px; border-radius: 8px; font-weight: 600; }
+      .top-header { flex-direction: column; align-items: stretch; }
+      
+      .content-card { padding: 16px; background: transparent; box-shadow: none; gap: 16px;}
+      .stat-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .stat-box { padding: 14px; }
+      .stat-val { font-size: 1.2rem; }
+      .tab-nav { width: 100%; justify-content: center; }
+
+      .tabel-desktop { display: none; }
+      .mobile-cards-container { display: flex; flex-direction: column; gap: 12px; flex-grow: 1; }
+      
+      .m-card {
+        background: #fff; border-radius: 16px; padding: 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #f0f7f0;
+        position: relative; overflow: hidden;
+      }
+      .m-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:#4CAF50; }
+      .m-card.warn::before { background: #F57C00; }
+      .m-card.habis::before { background: #e53935; }
+      
+      .m-card-title { font-weight: 800; font-size: 1.05rem; color: #1a2e1a; margin-bottom: 8px;}
+      .m-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #f9fdf9; padding: 10px; border-radius: 12px;}
+      .m-lbl { font-size: 0.7rem; color: #888; text-transform: uppercase; font-weight: 700;}
+      .m-val { font-size: 0.9rem; font-weight: 800; color: #333;}
+      .chart-wrapper { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar" class="d-none d-md-flex">
+    <div class="sidebar-brand">
+      <img src="../assets/img/logo2.png" alt="Logo">
+      <span>Jualin</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="produk.html">Data Produk</a></li>
+      <li><a href="user.html">Manajemen User</a></li>
+      <li><a href="laporan.html" class="active"> Laporan</a></li>
+      <li><a href="bahan_baku.html"> Bahan Baku</a></li>
+      <li><a href="resep_produk.html"> Resep Produk</a></li>
+    </ul>
+    <div style="margin-top: auto;">
+      <a href="#" onclick="logout()" class="btn btn-danger w-100" style="background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.2); color: #ff6b6b; font-weight: 700; border-radius: 12px; padding: 10px; text-decoration:none; text-align:center; display:block;">Keluar</a>
+    </div>
+  </div>
+
+  <div class="m-navbar d-md-none">
+    <span><img src="../assets/img/logo2.png" alt="Logo" height="24"> Jualin</span>
+    <button class="btn-menu" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">Menu</button>
+  </div>
+
+  <div class="offcanvas offcanvas-start" id="mobileSidebar" style="background:#1e293b;">
+    <div class="offcanvas-header border-bottom border-secondary">
+      <h5 class="offcanvas-title text-white fw-bold d-flex align-items-center gap-2">
+        <img src="../assets/img/logo2.png" width="28"> Jualin
+      </h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column">
+      <ul class="sidebar-menu mt-2 flex-grow-1">
+        <li><a href="produk.html">Data Produk</a></li>
+        <li><a href="user.html">Manajemen User</a></li>
+        <li><a href="laporan.html" class="active">Laporan</a></li>
+        <li><a href="bahan_baku.html">Bahan Baku</a></li>
+        <li><a href="resep_produk.html" Resep Produk</a></li>
+      </ul>
+      <a href="#" onclick="logout()" class="btn btn-danger w-100 mt-4" style="background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.2); color: #ff6b6b; font-weight: 700; border-radius: 12px; padding: 10px; text-align:center; text-decoration:none;">Keluar</a>
+    </div>
+  </div>
+
+  <div class="main-wrapper">
+    
+    <div class="top-header">
+      <div>
+        <h1 class="header-title">Laporan Bahan Baku</h1>
+        <div class="header-subtitle">Pantau stok dan penggunaan bahan</div>
+      </div>
+      <a href="laporan.html" class="btn-back">Kembali</a>
+    </div>
+
+    <div class="content-card">
+
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-label">Total Bahan</div>
+          <div class="stat-val" id="sTotalBahan">-</div>
+        </div>
+        <div class="stat-box b2">
+          <div class="stat-label">Stok Menipis</div>
+          <div class="stat-val warn" id="sMenuipis">-</div>
+        </div>
+        <div class="stat-box b3">
+          <div class="stat-label">Stok Habis</div>
+          <div class="stat-val danger" id="sHabis">-</div>
+        </div>
+        <div class="stat-box b4">
+          <div class="stat-label">Total Terpakai</div>
+          <div class="stat-val blue" id="sTerpakai">-</div>
+        </div>
+      </div>
+
+      <div class="tab-nav mx-auto mx-md-0">
+        <button class="tab-nav-btn active" onclick="switchTab('stok', this)">Sisa Stok</button>
+        <button class="tab-nav-btn" onclick="switchTab('pemakaian', this)">Pemakaian</button>
+        <button class="tab-nav-btn" onclick="switchTab('ringkasan', this)">Ringkasan</button>
+      </div>
+
+      <div id="tabStok" class="d-flex flex-column flex-grow-1">
+        <div class="toolbar-section">
+          <div class="search-box">
+            <input type="text" id="filterStokNama" placeholder="Cari bahan baku" oninput="renderStok()">
+          </div>
+        </div>
+
+        <div class="tabel-desktop">
+          <table class="table-modern">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Bahan Baku</th>
+                <th>Sisa Stok</th>
+                <th>Batas Min</th>
+                <th>Status</th>
+                <th class="text-end">Total Terpakai</th>
+              </tr>
+            </thead>
+            <tbody id="tabelStok">
+              <tr><td colspan="6" class="text-center py-4 text-muted fw-bold">Memuat data</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mobile-cards-container" id="mobileStok"></div>
+      </div>
+
+      <div id="tabPemakaian" style="display:none;" class="flex-column flex-grow-1">
+        <div class="chart-wrapper mb-4">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h3 class="toolbar-title" style="font-size: 1rem;">Grafik Pemakaian</h3>
+            <select class="form-select form-select-sm" id="selBahanGrafik" style="width: auto; background:#fff; border-radius:10px;" onchange="renderGrafik()">
+              <option value="">Pilih Bahan</option>
+            </select>
+          </div>
+          <canvas id="chartPemakaian" style="max-height:250px;"></canvas>
+        </div>
+
+        <div class="tabel-desktop">
+          <table class="table-modern">
+            <thead>
+              <tr><th>Tanggal</th><th>Bahan</th><th class="text-end">Terpakai</th></tr>
+            </thead>
+            <tbody id="tabelPemakaian"></tbody>
+          </table>
+        </div>
+        <div class="mobile-cards-container" id="mobilePemakaian"></div>
+      </div>
+
+      <div id="tabRingkasan" style="display:none;" class="flex-column flex-grow-1">
+        <div class="chart-wrapper mb-4">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h3 class="toolbar-title" style="font-size: 1rem;">Top Penggunaan</h3>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+              <input type="date" id="ringStart" class="form-control form-control-sm" style="width:140px; border-radius:10px;">
+              <span class="text-muted" style="font-size:0.85rem">s/d</span>
+              <input type="date" id="ringEnd" class="form-control form-control-sm" style="width:140px; border-radius:10px;">
+              <button class="btn btn-success btn-sm" style="border-radius:10px;" onclick="loadRingkasan()">Terapkan</button>
+              <button class="btn btn-light btn-sm" style="border-radius:10px;" onclick="resetRingkasan()">Reset</button>
+            </div>
+          </div>
+          <canvas id="chartRingkasan" style="max-height:220px;"></canvas>
+        </div>
+
+        <div class="tabel-desktop">
+          <table class="table-modern">
+            <thead>
+              <tr><th>No</th><th>Bahan</th><th>Total Pakai</th><th>Rata/Hari</th><th class="text-end">Estimasi Habis</th></tr>
+            </thead>
+            <tbody id="tabelRingkasan"></tbody>
+          </table>
+        </div>
+        <div class="mobile-cards-container" id="mobileRingkasan"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const BASE_LAPORAN = "../../Backend/laporan/";
+    const id_toko = sessionStorage.getItem("admin_id_toko");
+    
+    let stokData = [], pemakaianData = [], ringkasanData = [];
+    let chartInst = null, chartRingInst = null;
+
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "../login.html";
+    }
+
+    function getStatus(stok, min) {
+      stok = parseFloat(stok); min = parseFloat(min);
+      if (stok <= 0) return "habis";
+      if (stok <= min) return "menipis";
+      return "aman";
+    }
+
+    async function init() {
+      if (!id_toko) window.location.href = "../login.html";
+      await loadStok();
+      await loadPemakaian();
+      loadRingkasan();
+    }
+
+    // --- STOK TAB ---
+    async function loadStok() {
+      try {
+        const res = await axios.get(`${BASE_LAPORAN}laporan_stok_bahan.php?type=stok&id_toko=${id_toko}`);
+        stokData = res.data || [];
+        
+        const menipis = stokData.filter(b => getStatus(b.stok, b.stok_minimum) === "menipis").length;
+        const habis = stokData.filter(b => getStatus(b.stok, b.stok_minimum) === "habis").length;
+        const terpakai = stokData.reduce((a, b) => a + parseFloat(b.total_terpakai || 0), 0);
+        
+        document.getElementById("sTotalBahan").textContent = stokData.length;
+        document.getElementById("sMenuipis").textContent = menipis;
+        document.getElementById("sHabis").textContent = habis;
+        document.getElementById("sTerpakai").textContent = terpakai.toLocaleString("id-ID");
+        
+        renderStok();
+      } catch(e) { console.error(e); }
+    }
+
+    function renderStok() {
+      const kw = document.getElementById("filterStokNama").value.toLowerCase();
+      const data = stokData.filter(b => b.nama_bahan.toLowerCase().includes(kw));
+
+      const tbody = document.getElementById("tabelStok");
+      const mList = document.getElementById("mobileStok");
+
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Data kosong</td></tr>`;
+        mList.innerHTML = `<div class="text-center text-muted py-3">Data kosong</div>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map((b, i) => {
+        const st = getStatus(b.stok, b.stok_minimum);
+        const stClass = st==='habis' ? 'danger' : st==='menipis' ? 'warn' : 'aman';
+        const txtClass = st==='habis' ? 'text-danger' : st==='menipis' ? 'text-warning' : 'text-success';
+        const pct = Math.min((parseFloat(b.stok) / (parseFloat(b.stok_minimum) * 3)) * 100, 100);
+
+        return `<tr>
+          <td>${i + 1}</td>
+          <td class="fw-bold" style="color:#1b5e20">${b.nama_bahan} <span class="badge bg-light text-dark ms-1">${b.satuan}</span></td>
+          <td class="fw-bold ${txtClass}">${parseFloat(b.stok).toLocaleString("id-ID")}</td>
+          <td>${parseFloat(b.stok_minimum).toLocaleString("id-ID")}</td>
+          <td>
+            <div class="stok-bar-wrap"><div class="stok-bar ${stClass}" style="width:${Math.max(pct,0)}%"></div></div>
+          </td>
+          <td class="text-end fw-bold" style="color:#1976D2">${parseFloat(b.total_terpakai).toLocaleString("id-ID")}</td>
+        </tr>`;
+      }).join("");
+
+      mList.innerHTML = data.map(b => {
+        const st = getStatus(b.stok, b.stok_minimum);
+        const cardCls = st==='habis' ? 'habis' : st==='menipis' ? 'warn' : '';
+        const txtClass = st==='habis' ? 'text-danger' : st==='menipis' ? 'text-warning' : 'text-success';
+
+        return `<div class="m-card ${cardCls}">
+          <div class="d-flex justify-content-between align-items-center w-100 mb-2">
+            <div class="m-title">${b.nama_bahan} <span class="badge bg-light text-dark">${b.satuan}</span></div>
+          </div>
+          <div class="m-grid-2 w-100">
+            <div><div class="m-lbl">Sisa Stok</div><div class="m-val ${txtClass}">${parseFloat(b.stok).toLocaleString("id-ID")}</div></div>
+            <div><div class="m-lbl">Batas Min</div><div class="m-val text-muted">${parseFloat(b.stok_minimum).toLocaleString("id-ID")}</div></div>
+            <div><div class="m-lbl">Total Pakai</div><div class="m-val" style="color:#1976D2">${parseFloat(b.total_terpakai).toLocaleString("id-ID")}</div></div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    // --- PEMAKAIAN TAB ---
+    async function loadPemakaian() {
+      const res = await axios.get(`${BASE_LAPORAN}laporan_stok_bahan.php?type=pemakaian_harian&id_toko=${id_toko}`);
+      pemakaianData = res.data || [];
+      
+      const bahanList = [...new Map(pemakaianData.map(d => [d.id_bahan, d])).values()];
+      const sel = document.getElementById("selBahanGrafik");
+      bahanList.forEach(b => {
+        sel.innerHTML += `<option value="${b.id_bahan}">${b.nama_bahan} (${b.satuan})</option>`;
+      });
+      if (bahanList.length) { sel.value = bahanList[0].id_bahan; renderGrafik(); }
+    }
+
+    function renderGrafik() {
+      const id = document.getElementById("selBahanGrafik").value;
+      const filtered = pemakaianData.filter(d => d.id_bahan == id);
+      if(!filtered.length) return;
+
+      const tbody = document.getElementById("tabelPemakaian");
+      const mList = document.getElementById("mobilePemakaian");
+
+      tbody.innerHTML = filtered.map(d => `<tr><td>${d.tanggal}</td><td class="fw-bold">${d.nama_bahan}</td><td class="text-end fw-bold text-success">${parseFloat(d.jumlah_pakai).toLocaleString("id-ID")} ${d.satuan}</td></tr>`).join("");
+      mList.innerHTML = filtered.map(d => `<div class="m-card"><div class="m-title">${d.tanggal}</div><div class="fw-bold text-success">${parseFloat(d.jumlah_pakai).toLocaleString("id-ID")} ${d.satuan}</div></div>`).join("");
+
+      const ctx = document.getElementById("chartPemakaian").getContext("2d");
+      if(chartInst) chartInst.destroy();
+      chartInst = new Chart(ctx, {
+        type: 'line',
+        data: { labels: filtered.map(d => d.tanggal), datasets: [{ label: 'Terpakai', data: filtered.map(d => parseFloat(d.jumlah_pakai)), borderColor: '#388e3c', backgroundColor:'rgba(76,175,80,0.1)', fill: true, tension: 0.4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend:{display:false} }, scales:{ x:{display:false} } }
+      });
+    }
+
+    // --- RINGKASAN TAB ---
+    async function loadRingkasan() {
+      const start = document.getElementById("ringStart").value || '';
+      const end = document.getElementById("ringEnd").value || '';
+      const res = await axios.get(`${BASE_LAPORAN}laporan_stok_bahan.php?type=ringkasan_pemakaian&id_toko=${id_toko}&start=${start}&end=${end}`);
+      ringkasanData = res.data || [];
+
+      const tbody = document.getElementById("tabelRingkasan");
+      const mList = document.getElementById("mobileRingkasan");
+
+      if(!ringkasanData.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">Data kosong</td></tr>`;
+        mList.innerHTML = `<div class="text-center text-muted">Data kosong</div>`;
+        return;
+      }
+
+      tbody.innerHTML = ringkasanData.map((d, i) => {
+        const rata = d.hari_aktif > 0 ? (parseFloat(d.total_terpakai) / parseInt(d.hari_aktif)).toFixed(1) : 0;
+        const est = rata > 0 ? Math.floor(parseFloat(d.stok) / rata) : '∞';
+        const estTxt = est === '∞' ? '∞' : est + ' hr';
+        const estCls = est !== '∞' && est <= 7 ? 'text-danger' : '';
+        return `<tr>
+          <td>${i+1}</td>
+          <td class="fw-bold" style="color:#1b5e20">${d.nama_bahan} <span class="badge bg-light text-dark">${d.satuan}</span></td>
+          <td class="fw-bold text-success">${parseFloat(d.total_terpakai).toLocaleString("id-ID")}</td>
+          <td>${rata}</td>
+          <td class="text-end fw-bold ${estCls}">${estTxt}</td>
+        </tr>`;
+      }).join("");
+
+      mList.innerHTML = ringkasanData.map((d) => {
+        const rata = d.hari_aktif > 0 ? (parseFloat(d.total_terpakai) / parseInt(d.hari_aktif)).toFixed(1) : 0;
+        const est = rata > 0 ? Math.floor(parseFloat(d.stok) / rata) : '∞';
+        const estTxt = est === '∞' ? '∞' : est + ' hr';
+        const estCls = est !== '∞' && est <= 7 ? 'text-danger' : '';
+        return `<div class="m-card">
+          <div class="m-title mb-2">${d.nama_bahan} <span class="badge bg-light text-dark">${d.satuan}</span></div>
+          <div class="m-grid-2 w-100">
+            <div><div class="m-lbl">Total Pakai</div><div class="m-val text-success">${parseFloat(d.total_terpakai).toLocaleString("id-ID")}</div></div>
+            <div><div class="m-lbl">Rata/Hari</div><div class="m-val">${rata}</div></div>
+            <div><div class="m-lbl">Est. Habis</div><div class="m-val ${estCls}">${estTxt}</div></div>
+          </div>
+        </div>`;
+      }).join("");
+
+      const top = ringkasanData.slice(0, 5);
+      const ctx = document.getElementById("chartRingkasan").getContext("2d");
+      if(chartRingInst) chartRingInst.destroy();
+      chartRingInst = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: top.map(d=>d.nama_bahan), datasets: [{ data: top.map(d=>parseFloat(d.total_terpakai)), backgroundColor: '#4CAF50', borderRadius: 6 }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins:{legend:{display:false}} }
+      });
+    }
+
+    function resetRingkasan() {
+      document.getElementById("ringStart").value = ""; document.getElementById("ringEnd").value = ""; loadRingkasan();
+    }
+
+    function switchTab(tab, btn) {
+      document.querySelectorAll(".tab-nav-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tabStok").style.display = tab === 'stok' ? 'flex' : 'none';
+      document.getElementById("tabPemakaian").style.display = tab === 'pemakaian' ? 'flex' : 'none';
+      document.getElementById("tabRingkasan").style.display = tab === 'ringkasan' ? 'flex' : 'none';
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>

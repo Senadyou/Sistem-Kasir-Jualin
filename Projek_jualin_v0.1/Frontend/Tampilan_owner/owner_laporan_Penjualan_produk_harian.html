@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Penjualan Harian - Jualin POS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary-color: #2e7d32;
+      --secondary-color: #4CAF50;
+      --bg-color: #d4f5d1;
+      --card-bg: #ffffff;
+      --text-main: #1b5e20;
+      --text-muted: #666666;
+      --border-radius: 12px;
+      --shadow-soft: 0 4px 20px rgba(46, 125, 50, 0.08);
+      --transition: all 0.3s ease;
+    }
+
+    body { margin: 0; background-color: var(--bg-color); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #1a2e1a; }
+    
+    /* =========================================
+       SIDEBAR & NAVBAR (Dari Dashboard)
+       ========================================= */
+    #sidebar {
+      width: 250px; position: fixed; top: 0; left: 0; height: 100vh;
+      background: #1b5e20; border-right: 1px solid rgba(255,255,255,0.05);
+      padding: 24px 16px; z-index: 100; display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+    #sidebar::-webkit-scrollbar { width: 4px; }
+    #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; padding: 0 10px; }
+    .sidebar-brand img { width: 34px; height: 34px; }
+    .sidebar-brand span { font-size: 1.25rem; font-weight: 800; color: #a5d6a7; letter-spacing: 0.5px; }
+
+    .sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+    .menu-section { font-size: 0.7rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; padding: 12px 16px 4px; font-weight: 700; }
+    .sidebar-menu li a {
+      display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 10px;
+      color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem; font-weight: 500; 
+      transition: all 0.2s; margin-bottom: 4px;
+    }
+    .sidebar-menu li a:hover, .sidebar-menu li a.active { background: rgba(165,214,167,0.15); color: #fff; font-weight: 600;}
+
+    .sidebar-user { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; margin-top: 20px;}
+    .user-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #388e3c, #4CAF50); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #fff; font-weight: 800; }
+    .user-info { display: flex; flex-direction: column; }
+    .user-name { font-size: 0.85rem; font-weight: 700; color: #fff; }
+    .user-role { font-size: 0.7rem; color: rgba(255,255,255,0.5); }
+
+    .btn-logout { background: rgba(244, 67, 54, 0.1); border: 1px solid rgba(244, 67, 54, 0.2); color: #ff6b6b; font-weight: 700; border-radius: 10px; padding: 10px; text-decoration: none; text-align: center; display: block; transition: 0.2s; font-size: 0.9rem;}
+    .btn-logout:hover { background: #f44336; color: #fff; }
+
+    .m-navbar { display: none; } /* Default hidden for desktop */
+
+    /* =========================================
+       MAIN CONTENT (Dipertahankan)
+       ========================================= */
+    .main-content { margin-left: 250px; padding: 24px; min-height: 100vh; display: flex; flex-direction: column; gap: 20px; }
+    
+    .navbar-dashboard { background-color: var(--card-bg); border-radius: var(--border-radius); padding: 16px 24px; box-shadow: var(--shadow-soft); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .navbar-dashboard h2 { margin: 0; font-weight: 700; font-size: 20px; color: var(--text-main); letter-spacing: -0.5px; }
+    
+    .btn { border-radius: 8px; font-weight: 600; padding: 8px 16px; font-size: 13px; letter-spacing: 0.3px; transition: var(--transition); border: none; }
+    .btn-primary { background-color: #1976D2; color: #fff; }
+    .btn-primary:hover { background-color: #1565C0; }
+    .btn-danger { background-color: #d32f2f; color: #fff; }
+    .btn-danger:hover { background-color: #c62828; }
+    .btn-light { background-color: #f5f5f5; color: #333; }
+    .btn-light:hover { background-color: #e0e0e0; }
+    .btn-success { background-color: var(--secondary-color); color: #fff; }
+    .btn-success:hover { background-color: var(--primary-color); }
+    .btn-outline-success { border: 1px solid var(--secondary-color); color: var(--secondary-color); background: transparent; }
+    .btn-outline-success:hover { background-color: var(--secondary-color); color: #fff; }
+
+    .filter-section { background: var(--card-bg); padding: 16px 24px; border-radius: var(--border-radius); box-shadow: var(--shadow-soft); display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+    .filter-label { font-weight: 600; color: var(--text-main); font-size: 14px; margin: 0; }
+    .form-control { border-radius: 8px; border: 1px solid #ddd; padding: 8px 12px; font-size: 13px; background-color: #fafafa; }
+    .form-control:focus { border-color: var(--secondary-color); box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1); }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+    .stat-box { background: var(--card-bg); border-radius: var(--border-radius); padding: 20px; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
+    .stat-box::before { content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px; background: var(--secondary-color); border-radius: 4px 0 0 4px; }
+    .stat-box.b2::before { background: #1976D2; }
+    .stat-box.b3::before { background: #F57C00; }
+    .stat-box.b4::before { background: #7B1FA2; }
+    .stat-box-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .stat-box-val { font-size: 24px; font-weight: 800; color: var(--text-main); line-height: 1; }
+
+    .chart-wrapper { background: var(--card-bg); border-radius: var(--border-radius); padding: 24px; box-shadow: var(--shadow-soft); flex-grow: 1; }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .chart-title { font-weight: 700; font-size: 16px; color: var(--text-main); margin: 0; }
+    .chart-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .chart-tabs { display: flex; background: #f5f5f5; border-radius: 8px; padding: 4px; }
+    .chart-tab-btn { border: none; background: transparent; color: var(--text-muted); border-radius: 6px; padding: 6px 16px; font-size: 12px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+    .chart-tab-btn.active { background: var(--card-bg); color: var(--primary-color); box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+
+    .table-container { background: var(--card-bg); border-radius: var(--border-radius); padding: 24px; box-shadow: var(--shadow-soft); overflow-x: auto; }
+    .table { margin: 0; width: 100%; border-collapse: separate; border-spacing: 0; }
+    .table thead th { background-color: #f9fbf9; color: var(--text-main); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 16px; border-bottom: 2px solid #e0e0e0; border-top: none; }
+    .table tbody td { padding: 14px 16px; font-size: 14px; color: #444; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    .table tbody tr:hover td { background-color: #fcfdfc; }
+    .table tbody tr:last-child td { border-bottom: none; }
+
+    /* =========================================
+       MOBILE RESPONSIVE
+       ========================================= */
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      
+      .m-navbar {
+        position: fixed; top: 0; left: 0; right: 0; background: rgba(27, 94, 32, 0.95); backdrop-filter: blur(12px);
+        z-index: 99; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;
+      }
+      .m-navbar span { color: #fff; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;}
+      .m-navbar img { height: 28px; }
+      .btn-menu { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem;}
+
+      .main-content { margin-left: 0; padding: 16px; padding-top: 80px; }
+      .navbar-dashboard { flex-direction: column; align-items: flex-start; }
+      .export-group { width: 100%; display: flex; gap: 8px; }
+      .export-group .btn { flex: 1; text-align: center; }
+      .filter-section { flex-direction: column; align-items: stretch; }
+      .filter-group { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+      .filter-actions { display: flex; gap: 8px; width: 100%; }
+      .filter-actions .btn { flex: 1; }
+      
+      .tabel-desktop { display: none; }
+      .mobile-cards { display: flex; flex-direction: column; gap: 12px; }
+      .day-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 16px; box-shadow: var(--shadow-soft); border-left: 4px solid var(--secondary-color); }
+      .day-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #f0f0f0; padding-bottom: 12px; }
+      .day-badge { font-size: 13px; font-weight: 700; color: var(--text-main); }
+      .day-penjualan { font-size: 16px; font-weight: 800; color: var(--text-main); }
+      .day-detail-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .day-detail-box { background: #fafafa; border-radius: 8px; padding: 10px 8px; text-align: center; }
+      .detail-label { display: block; font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+      .detail-val { font-size: 14px; font-weight: 700; color: #333; }
+      .btn-detail-mobile { display: inline-block; text-decoration: none; color: #1976D2; font-size: 12px; font-weight: 600; padding-top: 4px; }
+    }
+    @media (min-width: 769px) {
+      .mobile-cards { display: none; }
+      .filter-group { display: flex; align-items: center; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar" class="d-none d-md-flex">
+    <div class="sidebar-brand">
+      <img src="../assets/img/logo2.png" alt="Logo">
+      <span>Jualin</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li class="menu-section">Penjualan</li>
+      <li><a href="owner_dashboard.html">Dashboard Utama</a></li>
+      <li><a href="owner_laporan_Penjualan_produk_harian.html" class="active">Penjualan Harian</a></li>
+      <li><a href="owner_laporan_Penjualan_produk_bulanan.html">Penjualan Bulanan</a></li>
+      <li><a href="owner_laporan_penjualan.html">Analisis Produk</a></li>
+
+      <li class="menu-section">Keuangan</li>
+      <li><a href="owner_laporan_laba_rugi_harian.html">Laba Rugi Harian</a></li>
+      <li><a href="owner_laporan_laba_rugi_bulanan.html">Laba Rugi Bulanan</a></li>
+      <li><a href="owner_laporan_laba_rugi.html">Margin Produk</a></li>
+      <li><a href="owner_laporan_arus_kas.html">Arus Kas</a></li>
+
+      <li class="menu-section">Inventaris</li>
+      <li><a href="owner_laporan_stok.html">Stok Produk</a></li>
+      <li><a href="owner_laporan_stok_bahan.html">Stok Bahan Baku</a></li>
+    </ul>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="avatarChar">O</div>
+      <div class="user-info">
+        <span class="user-name" id="ownerNama">Owner</span>
+        <span class="user-role">Administrator</span>
+      </div>
+    </div>
+    <a href="#" onclick="logout()" class="btn-logout">Keluar Sesi</a>
+  </div>
+
+  <div class="m-navbar d-md-none">
+    <span><img src="../assets/img/logo2.png" alt="Logo"> Jualin</span>
+    <button class="btn-menu" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">Menu</button>
+  </div>
+
+  <div class="offcanvas offcanvas-start" id="mobileSidebar" style="background:#1e293b;">
+    <div class="offcanvas-header border-bottom border-secondary">
+      <h5 class="offcanvas-title text-white fw-bold d-flex align-items-center gap-2">
+        <img src="../assets/img/logo2.png" width="28"> Jualin
+      </h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column" style="padding: 0;">
+      <ul class="sidebar-menu p-3 flex-grow-1">
+        <li class="menu-section" style="padding-left:0;">Penjualan</li>
+        <li><a href="owner_dashboard.html">Dashboard Utama</a></li>
+        <li><a href="owner_laporan_Penjualan_produk_harian.html" class="active">Penjualan Harian</a></li>
+        <li><a href="owner_laporan_Penjualan_produk_bulanan.html">Penjualan Bulanan</a></li>
+        <li><a href="owner_laporan_penjualan.html">Analisis Produk</a></li>
+
+        <li class="menu-section" style="padding-left:0; margin-top:10px;">Keuangan</li>
+        <li><a href="owner_laporan_laba_rugi_harian.html">Laba Rugi Harian</a></li>
+        <li><a href="owner_laporan_laba_rugi_bulanan.html">Laba Rugi Bulanan</a></li>
+        <li><a href="owner_laporan_laba_rugi.html">Margin Produk</a></li>
+        <li><a href="owner_laporan_arus_kas.html">Arus Kas</a></li>
+
+        <li class="menu-section" style="padding-left:0; margin-top:10px;">Inventaris</li>
+        <li><a href="owner_laporan_stok.html">Stok Produk</a></li>
+        <li><a href="owner_laporan_stok_bahan.html">Stok Bahan Baku</a></li>
+      </ul>
+      <div class="p-3">
+        <a href="#" onclick="logout()" class="btn-logout">Keluar Sesi</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <div class="navbar-dashboard">
+      <h2>Penjualan Produk Harian</h2>
+      <div class="export-group">
+        <a id="btnPdf" href="#" class="btn btn-danger">Ekspor PDF</a>
+        <a id="btnExcel" href="#" class="btn btn-primary">Ekspor Excel</a>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-group">
+        <span class="filter-label">Rentang Waktu</span>
+        <input type="date" id="start" class="form-control">
+        <span class="text-muted" style="font-size:13px;">hingga</span>
+        <input type="date" id="end" class="form-control">
+      </div>
+      <div class="filter-actions ms-auto">
+        <button class="btn btn-outline-secondary" onclick="resetFilter()">Reset</button>
+        <button class="btn btn-success" onclick="applyFilters()">Terapkan Data</button>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-box-label">Periode Hari</div>
+        <div class="stat-box-val" id="sHari">0</div>
+      </div>
+      <div class="stat-box b2">
+        <div class="stat-box-label">Total Transaksi</div>
+        <div class="stat-box-val" id="sTrx">0</div>
+      </div>
+      <div class="stat-box b3">
+        <div class="stat-box-label">Produk Terjual</div>
+        <div class="stat-box-val" id="sProduk">0</div>
+      </div>
+      <div class="stat-box b4">
+        <div class="stat-box-label">Total Pendapatan</div>
+        <div class="stat-box-val" id="sTotal">Rp 0</div>
+      </div>
+    </div>
+
+    <div class="chart-wrapper">
+      <div class="chart-header">
+        <div>
+          <h3 class="chart-title">Grafik Penjualan Harian</h3>
+          <p class="chart-subtitle">Menampilkan 7 hari terakhir berdasarkan data terbaru</p>
+        </div>
+        <div class="chart-tabs">
+          <button class="chart-tab-btn active" id="btnBar" onclick="switchChart('bar')">Batang</button>
+          <button class="chart-tab-btn" id="btnLine" onclick="switchChart('line')">Garis</button>
+        </div>
+      </div>
+      <div style="position: relative; height: 300px; width: 100%;">
+        <canvas id="chartHarian"></canvas>
+      </div>
+    </div>
+
+    <div class="table-container tabel-desktop">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Tanggal</th>
+            <th>Total Transaksi</th>
+            <th>Produk Terjual</th>
+            <th>Total Pendapatan</th>
+            <th class="text-end">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tabel-penjualan-harian">
+          <tr><td colspan="5" class="text-center text-muted py-4">Memuat data sistem...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mobile-cards" id="mobileCardList">
+      <p class="text-center text-muted small py-3">Memuat data sistem...</p>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Auth & Init
+    const ownerNama = sessionStorage.getItem("owner_nama");
+    const ownerIdToko = sessionStorage.getItem("owner_id_toko");
+    if (!ownerIdToko) window.location.href = "../login.html";
+    if (document.getElementById("ownerNama")) document.getElementById("ownerNama").textContent = ownerNama || "Owner";
+    if (document.getElementById("avatarChar")) document.getElementById("avatarChar").textContent = (ownerNama||"O")[0].toUpperCase();
+    
+    function logout() {
+      ["owner_id","owner_nama","owner_role","owner_id_toko"].forEach(k => sessionStorage.removeItem(k));
+      window.location.href = "../login.html";
+    }
+
+    let allData = [];
+    let currentData = [];
+    let chartInst = null;
+    let currentType = 'bar';
+    const isMobile = () => window.innerWidth <= 768;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const id_toko = sessionStorage.getItem("owner_id_toko");
+      if (!id_toko) { window.location.href = "../login.html"; return; }
+      
+      const base = "../../Backend/laporan/export_laporan_penjualan_harian.php";
+      document.getElementById("btnPdf").href = `${base}?type=pdf&id_toko=${id_toko}`;
+      document.getElementById("btnExcel").href = `${base}?type=excel&id_toko=${id_toko}`;
+      loadData(id_toko);
+    });
+
+    async function loadData(id_toko) {
+      try {
+        const res = await axios.get(`../../Backend/laporan/penjualan_produk_harian.php?id_toko=${id_toko}`);
+        allData = res.data || [];
+        renderAll(allData);
+      } catch (err) {
+        console.error(err);
+        const errHtml = `<tr><td colspan="5" class="text-center text-danger py-4">Sistem gagal mengambil data</td></tr>`;
+        document.getElementById("tabel-penjualan-harian").innerHTML = errHtml;
+        document.getElementById("mobileCardList").innerHTML = `<p class="text-danger text-center py-3">Sistem gagal mengambil data</p>`;
+      }
+    }
+
+    function renderAll(data) {
+      currentData = data;
+      renderTable(data);
+      renderMobileCards(data);
+      renderStatCards(data);
+      renderChart(data);
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById("tabel-penjualan-harian");
+      if (!data.length) { tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Data tidak ditemukan</td></tr>`; return; }
+      tbody.innerHTML = data.map(d => `
+        <tr>
+          <td class="fw-medium">${d.TANGGAL}</td>
+          <td>${parseInt(d.TOTAL_TRANSAKSI).toLocaleString("id-ID")}</td>
+          <td>${parseInt(d.TOTAL_PRODUK_TERJUAL).toLocaleString("id-ID")}</td>
+          <td class="fw-bold" style="color:var(--text-main)">Rp ${parseInt(d.TOTAL_PENJUALAN).toLocaleString("id-ID")}</td>
+          <td class="text-end"><a href="owner_laporan_penjualan_produk_harian_detail.html?tanggal=${d.TANGGAL}" class="btn btn-outline-success">Detail</a></td>
+        </tr>`).join("");
+    }
+
+    function renderMobileCards(data) {
+      const el = document.getElementById("mobileCardList");
+      if (!data.length) { el.innerHTML = `<p class="text-center text-muted py-3">Data tidak ditemukan</p>`; return; }
+      el.innerHTML = data.map(d => `
+        <div class="day-card">
+          <div class="day-card-top">
+            <span class="day-badge">${d.TANGGAL}</span>
+            <span class="day-penjualan">Rp ${parseInt(d.TOTAL_PENJUALAN).toLocaleString("id-ID")}</span>
+          </div>
+          <div class="day-detail-row">
+            <div class="day-detail-box">
+              <span class="detail-label">Trx</span>
+              <span class="detail-val">${d.TOTAL_TRANSAKSI}</span>
+            </div>
+            <div class="day-detail-box">
+              <span class="detail-label">Produk</span>
+              <span class="detail-val">${d.TOTAL_PRODUK_TERJUAL}</span>
+            </div>
+            <div class="day-detail-box d-flex flex-column justify-content-center">
+              <span class="detail-label">Aksi</span>
+              <a href="owner_laporan_penjualan_produk_harian_detail.html?tanggal=${d.TANGGAL}" class="btn-detail-mobile">Lihat Detail</a>
+            </div>
+          </div>
+        </div>`).join("");
+    }
+
+    function renderStatCards(data) {
+      const totalTrx = data.reduce((a, d) => a + parseInt(d.TOTAL_TRANSAKSI || 0), 0);
+      const totalProduk = data.reduce((a, d) => a + parseInt(d.TOTAL_PRODUK_TERJUAL || 0), 0);
+      const totalJual = data.reduce((a, d) => a + parseInt(d.TOTAL_PENJUALAN || 0), 0);
+      document.getElementById("sHari").innerText = data.length;
+      document.getElementById("sTrx").innerText = totalTrx.toLocaleString("id-ID");
+      document.getElementById("sProduk").innerText = totalProduk.toLocaleString("id-ID");
+      document.getElementById("sTotal").innerText = shortRp(totalJual);
+    }
+
+    function renderChart(data) {
+      const d30 = [...data]
+        .sort((a, b) => new Date(b.TANGGAL) - new Date(a.TANGGAL))
+        .slice(0, 7)
+        .reverse(); 
+        
+      const labels = d30.map(d => d.TANGGAL);
+      const jual = d30.map(d => parseInt(d.TOTAL_PENJUALAN));
+      const trx = d30.map(d => parseInt(d.TOTAL_TRANSAKSI));
+      const mobile = isMobile();
+      const isBar = currentType === 'bar';
+      const ctx = document.getElementById("chartHarian").getContext("2d");
+      
+      if (chartInst) chartInst.destroy();
+
+      const gradGreen = ctx.createLinearGradient(0, 0, 0, 300);
+      gradGreen.addColorStop(0, "rgba(76,175,80,0.4)");
+      gradGreen.addColorStop(1, "rgba(76,175,80,0.0)");
+
+      chartInst = new Chart(ctx, {
+        type: isBar ? 'bar' : 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Pendapatan (Rp)',
+              data: jual,
+              backgroundColor: isBar ? '#4CAF50' : gradGreen,
+              borderColor: '#2e7d32',
+              borderWidth: isBar ? 0 : 2,
+              borderRadius: isBar ? 4 : 0,
+              fill: !isBar,
+              tension: 0.3,
+              pointRadius: mobile ? 2 : 4,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Volume Transaksi',
+              data: trx,
+              backgroundColor: isBar ? '#1976D2' : 'transparent',
+              borderColor: '#1565C0',
+              borderWidth: isBar ? 0 : 2,
+              borderRadius: isBar ? 4 : 0,
+              fill: false,
+              tension: 0.3,
+              pointRadius: mobile ? 2 : 4,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { 
+              position: 'top', 
+              align: 'end',
+              labels: { usePointStyle: true, boxWidth: 8, font: { size: 11, family: 'Segoe UI' } } 
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              padding: 12,
+              callbacks: {
+                label: ctx => ctx.datasetIndex === 0
+                  ? ' Rp ' + ctx.parsed.y.toLocaleString("id-ID")
+                  : ' ' + ctx.parsed.y + ' Transaksi'
+              }
+            }
+          },
+          scales: {
+            x: { 
+              grid: { display: false },
+              ticks: { font: { size: 11 }, color: '#888' } 
+            },
+            y: { 
+              position: 'left', 
+              border: { display: false },
+              grid: { color: '#f0f0f0' },
+              ticks: { 
+                font: { size: 11 }, 
+                color: '#888',
+                callback: v => v >= 1e6 ? (v/1e6).toFixed(1) + 'Jt' : v >= 1e3 ? (v/1e3).toFixed(0) + 'Rb' : v 
+              } 
+            },
+            y1: { 
+              position: 'right', 
+              border: { display: false },
+              grid: { drawOnChartArea: false }, 
+              ticks: { font: { size: 11 }, color: '#888' } 
+            }
+          }
+        }
+      });
+    }
+
+    function switchChart(type) {
+      currentType = type;
+      document.getElementById("btnBar").classList.toggle("active", type === 'bar');
+      document.getElementById("btnLine").classList.toggle("active", type === 'line');
+      renderChart(currentData);
+    }
+
+    function applyFilters() {
+      const start = document.getElementById("start").value;
+      const end = document.getElementById("end").value;
+      if (!start && !end) { renderAll(allData); return; }
+      renderAll(allData.filter(d => {
+        const tgl = d.TANGGAL;
+        if (start && tgl < start) return false;
+        if (end && tgl > end) return false;
+        return true;
+      }));
+    }
+
+    function resetFilter() {
+      document.getElementById("start").value = "";
+      document.getElementById("end").value = "";
+      renderAll(allData);
+    }
+
+    function shortRp(v) {
+      if (v >= 1e9) return "Rp " + (v/1e9).toFixed(2).replace(".",",") + " M";
+      if (v >= 1e6) return "Rp " + (v/1e6).toFixed(2).replace(".",",") + " Jt";
+      return "Rp " + v.toLocaleString("id-ID");
+    }
+  </script>
+</body>
+</html>

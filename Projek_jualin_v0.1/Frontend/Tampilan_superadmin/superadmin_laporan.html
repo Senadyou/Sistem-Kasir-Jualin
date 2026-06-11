@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Laporan - Jualin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #3bb54a;
+      --primary-dark: #1b5e20;
+      --primary-light: #e8f5e9;
+      --bg-color: #d4f5d1;
+      --surface: #ffffff;
+      --text-main: #1a2e1a;
+      --text-muted: #666666;
+      --border-color: #e0e0e0;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+      --radius: 12px;
+      --danger: #d32f2f;
+      --info: #1976d2;
+      --warning: #f57c00;
+      --purple: #7b1fa2;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg-color);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: var(--text-main);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .pos-sidebar {
+      width: 240px;
+      background: var(--primary-dark);
+      border-right: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+      padding: 24px 16px;
+    }
+    .brand-area {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 24px; padding: 0 10px;
+    }
+    .brand-area img { height: 32px; margin-right: 8px; }
+    .brand-area span { font-weight: 800; font-size: 1.25rem; color: #a5d6a7; letter-spacing: 0.5px; }
+    
+    .sidebar-badge {
+      font-size: 0.7rem; background: rgba(255,255,255,0.1); color: #fff;
+      font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 6px; margin-bottom: 24px; align-self: flex-start; margin-left: 10px;
+    }
+
+    .nav-menu { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      color: rgba(255,255,255,0.7); text-decoration: none;
+      font-weight: 600; font-size: 0.95rem; border-radius: 10px;
+      margin-bottom: 6px; transition: 0.2s;
+    }
+    .nav-item.active { background: rgba(165,214,167,0.2); color: #fff; }
+    .nav-item:hover:not(.active) { background: rgba(255,255,255,0.05); color: #fff; }
+    
+    .user-area { padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; }
+    .user-profile { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 0 8px; }
+    .user-avatar { width: 36px; height: 36px; background: #fff; color: var(--primary-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+    .user-info { display: flex; flex-direction: column; }
+    .user-name { font-weight: 700; font-size: 0.85rem; color: #fff; }
+    .user-role { font-size: 0.7rem; color: rgba(255,255,255,0.6); }
+
+    .btn-logout {
+      width: 100%; background: rgba(244, 67, 54, 0.1); color: #ff6b6b; border: 1px solid rgba(244, 67, 54, 0.2);
+      padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s;
+    }
+    .btn-logout:hover { background: #f44336; color: #fff; }
+
+    /* ── MAIN CONTENT ── */
+    .pos-main {
+      flex: 1; margin-left: 240px; display: flex; flex-direction: column; width: calc(100% - 240px);
+    }
+    
+    .top-toolbar {
+      height: 70px; background: var(--surface); border-bottom: 1px solid var(--border-color);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+      position: sticky; top: 0; z-index: 90;
+    }
+    .page-title { font-weight: 800; font-size: 1.2rem; margin: 0; color: var(--text-main); }
+    
+    .content-area { padding: 24px; display: flex; flex-direction: column; gap: 20px; flex: 1; }
+
+    /* ── FILTER & SELECTOR ── */
+    .filter-bar { 
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap; 
+      background: var(--surface); padding: 16px 24px; border-radius: var(--radius); box-shadow: var(--shadow-sm); 
+    }
+    .filter-label { font-weight: 700; color: var(--text-muted); font-size: 0.9rem; margin: 0; }
+    .form-select { 
+      border-radius: 8px; border: 1px solid var(--border-color); padding: 8px 12px; font-size: 0.95rem; 
+      font-weight: 600; width: auto; min-width: 250px; background-color: #fafafa; cursor: pointer; 
+    }
+    .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,181,74,0.1); }
+
+    /* ── OVERVIEW GRID (SEMUA TOKO) ── */
+    .overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .overview-card {
+      background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius);
+      padding: 20px; cursor: pointer; transition: 0.2s; position: relative; overflow: hidden;
+      box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 16px;
+    }
+    .overview-card::before { content: ''; position: absolute; left: 0; top: 0; width: 4px; height: 100%; background: var(--primary); }
+    .overview-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .overview-card.selected { border-color: var(--primary); background: var(--primary-light); }
+    
+    .ov-header { border-bottom: 1px solid #f0f7f0; padding-bottom: 12px; }
+    .ov-nama { font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px; }
+    .ov-kota { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+    
+    .ov-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .ov-stat-val { font-size: 1.1rem; font-weight: 800; color: var(--text-main); }
+    .ov-stat-val.text-danger { color: var(--danger); }
+    .ov-stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 2px;}
+
+    /* ── DETAIL SECTION ── */
+    #detailSection { display: none; display: flex; flex-direction: column; gap: 20px; }
+    
+    .detail-header-card {
+      background: var(--surface); border-radius: var(--radius); padding: 20px 24px;
+      box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+      border-left: 4px solid var(--primary);
+    }
+    .dh-title { font-size: 1.2rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px; }
+    .dh-subtitle { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+    .btn-outline {
+      background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
+      padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: 0.2s;
+    }
+    .btn-outline:hover { background: #fafafa; color: var(--text-main); }
+
+    /* Stats Detail */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .stat-box {
+      background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm);
+      display: flex; flex-direction: column; position: relative; overflow: hidden; border: 1px solid var(--border-color);
+    }
+    .stat-box::before { content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px; background: var(--primary); }
+    .stat-box.b2::before { background: var(--warning); }
+    .stat-box.b3::before { background: var(--info); }
+    .stat-box.b4::before { background: var(--purple); }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .stat-val { font-size: 1.6rem; font-weight: 800; color: var(--text-main); line-height: 1; }
+    .stat-val.rugi { color: var(--danger); }
+
+    /* Chart & Table Cards */
+    .content-card {
+      background: var(--surface); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm);
+    }
+    .cc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
+    .cc-title { font-weight: 800; font-size: 1.1rem; color: var(--text-main); margin: 0; }
+    .cc-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;}
+    
+    .chart-toggles { display: flex; gap: 8px; background: #fafafa; padding: 4px; border-radius: 8px; border: 1px solid var(--border-color); }
+    .chart-btn { border: none; background: transparent; color: var(--text-muted); padding: 6px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: 0.2s; }
+    .chart-btn.active { background: var(--primary); color: #fff; }
+
+    /* Table Modern */
+    .table-modern { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .table-modern thead th {
+      background: #fafafa; color: var(--text-muted); font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 16px; border-bottom: 2px solid var(--border-color);
+    }
+    .table-modern tbody tr { transition: 0.2s; }
+    .table-modern tbody tr:hover td { background: #fdfdfd; }
+    .table-modern tbody td { padding: 14px 16px; font-size: 0.9rem; color: var(--text-main); border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    .row-total td { background: #fafafa !important; font-weight: 800; border-top: 2px solid var(--border-color); }
+    
+    .badge-status { padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.75rem; display: inline-block; }
+    .badge-untung { background: var(--primary-light); color: var(--primary-dark); }
+    .badge-rugi { background: #ffebee; color: var(--danger); }
+    .text-hijau { color: var(--primary-dark); font-weight: 700; }
+    .text-merah { color: var(--danger); font-weight: 700; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); font-weight: 600; font-size: 0.95rem; border: 1px dashed var(--border-color); border-radius: var(--radius); }
+
+    /* ── MOBILE UI ── */
+    .m-navbar { display: none; }
+
+    @media (max-width: 992px) {
+      body { flex-direction: column; }
+      .pos-sidebar { display: none; }
+      .pos-main { margin-left: 0; width: 100%; }
+      
+      .m-navbar {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--primary-dark); padding: 14px 20px; color: #fff;
+        position: sticky; top: 0; z-index: 100; width: 100%;
+      }
+      .m-brand { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;}
+      .m-brand img { height: 28px; }
+      .m-menu-btn { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 6px 12px; border-radius: 6px; font-weight: 600; }
+
+      .top-toolbar { display: none; }
+      .content-area { padding: 16px; }
+      .filter-bar { flex-direction: column; align-items: stretch; }
+      .form-select { width: 100%; }
+      .stat-grid { grid-template-columns: 1fr 1fr; }
+      .overview-grid { grid-template-columns: 1fr; }
+      .chart-toggles { overflow-x: auto; white-space: nowrap; padding-bottom: 2px; }
+      .table-responsive { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <aside class="pos-sidebar d-none d-lg-flex">
+    <div class="brand-area">
+      <img src="../assets/img/logo.png" alt="Logo">
+      <span>Jualin</span>
+    </div>
+    <div class="sidebar-badge">Superadmin</div>
+    <ul class="nav-menu">
+      <a href="superadmin_dashboard.html" class="nav-item">Kelola Toko</a>
+      <a href="superadmin_laporan.html" class="nav-item active">Data Laporan</a>
+    </ul>
+    <div class="user-area">
+      <div class="user-profile">
+        <div class="user-avatar" id="avatarChar">S</div>
+        <div class="user-info">
+          <span class="user-name" id="sidebarUsername">Superadmin</span>
+          <span class="user-role">Sistem Administrator</span>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Keluar Sesi</button>
+    </div>
+  </aside>
+
+  <div class="m-navbar d-lg-none">
+    <div class="m-brand">
+      <img src="../assets/img/logo.png" alt="Logo">
+      Jualin
+    </div>
+    <button class="m-menu-btn" data-bs-toggle="offcanvas" data-bs-target="#sidebarMobile">Menu</button>
+  </div>
+
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMobile" style="background: var(--primary-dark);">
+    <div class="offcanvas-header border-bottom border-secondary">
+      <h5 class="offcanvas-title text-white fw-bold d-flex align-items-center gap-2">
+        <img src="../assets/img/logo.png" width="28"> Jualin
+      </h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column" style="padding: 0;">
+      <div class="p-3">
+        <span class="sidebar-badge" style="margin-left:0;">Superadmin</span>
+      </div>
+      <div class="nav-menu px-2">
+        <a href="superadmin_dashboard.html" class="nav-item">Kelola Toko</a>
+        <a href="superadmin_laporan.html" class="nav-item active">Data Laporan</a>
+      </div>
+      <div class="p-3 mt-auto border-top border-secondary">
+        <button class="btn-logout" onclick="logout()">Keluar Sesi</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="pos-main">
+    <div class="top-toolbar">
+      <h1 class="page-title">Data Laporan Toko</h1>
+    </div>
+
+    <div class="content-area">
+      
+      <div id="overviewSection">
+        <div class="filter-bar mb-4">
+          <span class="filter-label">Pilih Toko</span>
+          <select class="form-select" id="tokoSelect" onchange="pilihToko(this.value)">
+            <option value="">Semua Data Toko</option>
+          </select>
+        </div>
+        
+        <div class="overview-grid" id="overviewGrid">
+          <div class="empty-state">Memuat data sinkronisasi...</div>
+        </div>
+      </div>
+
+      <div id="detailSection" style="display: none;">
+        
+        <div class="detail-header-card">
+          <div>
+            <div class="dh-title" id="detailNama">-</div>
+            <div class="dh-subtitle" id="detailSub">-</div>
+          </div>
+          <button class="btn-outline" onclick="kembaliOverview()">Kembali ke Daftar</button>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div class="stat-label">Total Penjualan</div>
+            <div class="stat-val" id="dsPenjualan">-</div>
+          </div>
+          <div class="stat-box b2">
+            <div class="stat-label" id="lblModal">Total Modal</div>
+            <div class="stat-val" id="dsModal">-</div>
+          </div>
+          <div class="stat-box b3">
+            <div class="stat-label" id="lblTrx">Total Transaksi</div>
+            <div class="stat-val" id="dsTrx">-</div>
+          </div>
+          <div class="stat-box b4">
+            <div class="stat-label" id="lblLaba">Total Laba</div>
+            <div class="stat-val" id="dsLaba">-</div>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <div class="cc-header">
+            <div class="chart-toggles">
+              <button class="chart-btn active" onclick="switchTab('penjualan_harian', this)">Harian (Jual)</button>
+              <button class="chart-btn" onclick="switchTab('laba_rugi_harian', this)">Harian (Laba)</button>
+              <button class="chart-btn" onclick="switchTab('penjualan_bulanan', this)">Bulanan (Jual)</button>
+              <button class="chart-btn" onclick="switchTab('laba_rugi_bulanan', this)">Bulanan (Laba)</button>
+            </div>
+            <div class="chart-toggles">
+              <button class="chart-btn active" id="btnBar" onclick="switchChartType('bar')">Batang</button>
+              <button class="chart-btn" id="btnLine" onclick="switchChartType('line')">Garis</button>
+            </div>
+          </div>
+          <div class="mb-3">
+            <div class="cc-title" id="chartTitle">Grafik Penjualan</div>
+            <div class="cc-subtitle" id="chartSub">-</div>
+          </div>
+          <canvas id="mainChart" style="max-height: 320px;"></canvas>
+        </div>
+
+        <div class="content-card" style="padding: 0; overflow: hidden;">
+          <div class="table-responsive">
+            <table class="table-modern" id="mainTable">
+              <thead><tr><th>Memuat Data...</th></tr></thead>
+              <tbody id="mainTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div> </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API = "../../Backend/superadmin/superadmin_laporan.php";
+    let overviewData = [];
+    let detailData = [];
+    let activeIdToko = null;
+    let activeType = 'penjualan_harian';
+    let chartInst = null;
+    let chartType = 'bar';
+
+    // ── AUTH ──
+    const username = sessionStorage.getItem("superadmin_username");
+    if (!sessionStorage.getItem("superadmin_id")) window.location.href = "login_superadmin.html";
+    document.getElementById("sidebarUsername").textContent = username || "Superadmin";
+    document.getElementById("avatarChar").textContent = (username || "S")[0].toUpperCase();
+
+    function logout() {
+      sessionStorage.removeItem("superadmin_id");
+      sessionStorage.removeItem("superadmin_username");
+      window.location.href = "login_superadmin.html";
+    }
+
+    // ── OVERVIEW ──
+    async function loadOverview() {
+      try {
+        const res = await fetch(API + "?type=ringkasan");
+        const json = await res.json();
+        
+        if (json && json.error) {
+          document.getElementById("overviewGrid").innerHTML = `<div class="empty-state text-danger">Terjadi Kesalahan: ${json.error}</div>`;
+          return;
+        }
+        
+        overviewData = Array.isArray(json) ? json : [];
+        renderOverview(overviewData);
+        populateSelect(overviewData);
+        
+        const urlToko = new URLSearchParams(window.location.search).get("toko");
+        if (urlToko) pilihToko(urlToko);
+      } catch(e) {
+        document.getElementById("overviewGrid").innerHTML = `<div class="empty-state text-danger">Gagal memuat data dari server.</div>`;
+      }
+    }
+
+    function populateSelect(data) {
+      const sel = document.getElementById("tokoSelect");
+      while (sel.options.length > 1) sel.remove(1);
+      data.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t.id_toko;
+        opt.textContent = t.nama_toko;
+        sel.appendChild(opt);
+      });
+    }
+
+    function renderOverview(data) {
+      const grid = document.getElementById("overviewGrid");
+      if (!data.length) {
+        grid.innerHTML = `<div class="empty-state">Data toko belum tersedia.</div>`;
+        return;
+      }
+      grid.innerHTML = data.map(t => {
+        const laba = parseFloat(t.total_laba || 0);
+        const untung = laba >= 0;
+        return `
+          <div class="overview-card" id="ovCard_${t.id_toko}" onclick="pilihToko(${t.id_toko})">
+            <div class="ov-header">
+              <div class="ov-nama">${t.nama_toko}</div>
+              <div class="ov-kota">${t.kota || 'Kota Tidak Diatur'}</div>
+            </div>
+            <div class="ov-stats">
+              <div>
+                <div class="ov-stat-val">${shortRp(parseFloat(t.total_penjualan || 0))}</div>
+                <div class="ov-stat-label">Penjualan</div>
+              </div>
+              <div>
+                <div class="ov-stat-val">${parseInt(t.total_transaksi || 0).toLocaleString("id-ID")}</div>
+                <div class="ov-stat-label">Transaksi</div>
+              </div>
+              <div>
+                <div class="ov-stat-val">${shortRp(parseFloat(t.total_modal || 0))}</div>
+                <div class="ov-stat-label">Modal</div>
+              </div>
+              <div>
+                <div class="ov-stat-val ${untung ? '' : 'text-danger'}">${shortRp(Math.abs(laba))}</div>
+                <div class="ov-stat-label">${untung ? 'Keuntungan' : 'Kerugian'}</div>
+              </div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    // ── PILIH TOKO ──
+    function pilihToko(id_toko) {
+      if (!id_toko) {
+        kembaliOverview();
+        return;
+      }
+      activeIdToko = parseInt(id_toko);
+      document.getElementById("tokoSelect").value = id_toko;
+
+      document.querySelectorAll(".overview-card").forEach(c => c.classList.remove("selected"));
+      const card = document.getElementById("ovCard_" + id_toko);
+      if (card) card.classList.add("selected");
+
+      const toko = overviewData.find(t => t.id_toko == id_toko);
+      if (toko) {
+        document.getElementById("detailNama").textContent = toko.nama_toko;
+        document.getElementById("detailSub").textContent = toko.kota ? `Lokasi: ${toko.kota}` : "Data spesifik toko";
+      }
+
+      document.getElementById("overviewSection").style.display = "none";
+      document.getElementById("detailSection").style.display = "flex";
+
+      activeType = 'penjualan_harian';
+      document.querySelectorAll(".chart-btn").forEach((b, i) => b.classList.toggle("active", i === 0 || b.id === 'btnBar'));
+      chartType = 'bar';
+      loadTabData(activeIdToko, activeType);
+    }
+
+    function kembaliOverview() {
+      document.getElementById("detailSection").style.display = "none";
+      document.getElementById("overviewSection").style.display = "block";
+      document.querySelectorAll(".overview-card").forEach(c => c.classList.remove("selected"));
+      document.getElementById("tokoSelect").value = "";
+      activeIdToko = null;
+    }
+
+    // ── TABS ──
+    function switchTab(type, btn) {
+      activeType = type;
+      // Hanya ganti active state di grup pertama
+      btn.parentElement.querySelectorAll(".chart-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      if (activeIdToko) loadTabData(activeIdToko, type);
+    }
+
+    async function loadTabData(id_toko, type) {
+      document.getElementById("dsPenjualan").textContent = "...";
+      document.getElementById("dsModal").textContent = "...";
+      document.getElementById("dsTrx").textContent = "...";
+      document.getElementById("dsLaba").textContent = "...";
+      document.getElementById("mainTbody").innerHTML = `<tr><td colspan="6" class="text-center text-muted p-4">Sinkronisasi data...</td></tr>`;
+
+      try {
+        const res = await fetch(API + "?type=" + type + "&id_toko=" + id_toko);
+        const json = await res.json();
+        
+        if (json && json.error) {
+          document.getElementById("mainTbody").innerHTML = `<tr><td colspan="6" class="text-center text-danger fw-bold p-4">Sistem gagal mengambil data</td></tr>`;
+          return;
+        }
+        detailData = Array.isArray(json) ? json : [];
+        updateStatCards(detailData, type);
+        renderChart(detailData, type);
+        renderTable(detailData, type);
+      } catch(e) {
+        document.getElementById("mainTbody").innerHTML = `<tr><td colspan="6" class="text-center text-danger fw-bold p-4">Kendala koneksi jaringan</td></tr>`;
+      }
+    }
+
+    // ── STAT CARDS ──
+    function updateStatCards(data, type) {
+      const isPenjualan = type.includes("penjualan");
+      const isHarian = type.includes("harian");
+
+      if (isPenjualan) {
+        const totalJual = data.reduce((a, d) => a + parseFloat(d.total_penjualan || 0), 0);
+        const totalTrx = data.reduce((a, d) => a + parseInt(d.total_transaksi || 0), 0);
+        const totalProd = data.reduce((a, d) => a + parseInt(d.total_produk || 0), 0);
+
+        document.getElementById("dsPenjualan").textContent = shortRp(totalJual);
+        document.getElementById("dsModal").textContent = totalProd.toLocaleString("id-ID") + " Unit";
+        document.getElementById("dsTrx").textContent = totalTrx.toLocaleString("id-ID");
+        document.getElementById("dsLaba").textContent = data.length + (isHarian ? " Hari" : " Bulan");
+        document.getElementById("dsLaba").className = "stat-val";
+
+        document.getElementById("lblModal").textContent = "Produk Terjual";
+        document.getElementById("lblTrx").textContent = "Total Transaksi";
+        document.getElementById("lblLaba").textContent = "Cakupan Waktu";
+      } else {
+        const totalJual = data.reduce((a, d) => a + parseFloat(d.total_penjualan || 0), 0);
+        const totalModal = data.reduce((a, d) => a + parseFloat(d.total_modal || 0), 0);
+        const totalLaba = data.reduce((a, d) => a + parseFloat(d.laba || 0), 0);
+        const untung = totalLaba >= 0;
+
+        document.getElementById("dsPenjualan").textContent = shortRp(totalJual);
+        document.getElementById("dsModal").textContent = shortRp(totalModal);
+        document.getElementById("dsTrx").textContent = data.length + (isHarian ? " Hari" : " Bulan");
+        document.getElementById("dsLaba").textContent = shortRp(Math.abs(totalLaba));
+        document.getElementById("dsLaba").className = "stat-val" + (untung ? "" : " rugi");
+
+        document.getElementById("lblModal").textContent = "Beban Modal";
+        document.getElementById("lblTrx").textContent = "Cakupan Waktu";
+        document.getElementById("lblLaba").textContent = untung ? "Keuntungan" : "Kerugian";
+      }
+    }
+
+    // ── GRAFIK ──
+    function renderChart(data, type) {
+      const titleMap = {
+        penjualan_harian: "Statistik Penjualan Harian",
+        laba_rugi_harian: "Statistik Keuangan Harian",
+        penjualan_bulanan: "Statistik Penjualan Bulanan",
+        laba_rugi_bulanan: "Statistik Keuangan Bulanan",
+      };
+      const subMap = {
+        penjualan_harian: "Data 30 hari operasional terakhir",
+        laba_rugi_harian: "Data 30 hari operasional terakhir",
+        penjualan_bulanan: "Data kalkulasi 12 bulan terakhir",
+        laba_rugi_bulanan: "Data kalkulasi 12 bulan terakhir",
+      };
+      
+      document.getElementById("chartTitle").textContent = titleMap[type] || type;
+      document.getElementById("chartSub").textContent = subMap[type] || "";
+
+      const isHarian = type.includes("harian");
+      const isPenjualan = type.includes("penjualan");
+      const limit = isHarian ? 30 : 12;
+      const key = isHarian ? "tanggal" : "bulan";
+
+      if (!data.length) {
+        const ctx = document.getElementById("mainChart").getContext("2d");
+        if (chartInst) { chartInst.destroy(); chartInst = null; }
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        return;
+      }
+
+      const sorted = [...data].sort((a, b) => a[key] > b[key] ? 1 : -1).slice(-limit);
+      if (isHarian) sorted.reverse();
+
+      const labels = sorted.map(d => d[key]);
+      const isBar = chartType === 'bar';
+      const datasets = [];
+
+      const ctx = document.getElementById("mainChart").getContext("2d");
+      if (chartInst) chartInst.destroy();
+
+      const colorGreen = "#3bb54a";
+      const colorBlue = "#1976d2";
+      const colorRed = "#d32f2f";
+      const colorPurple = "#7b1fa2";
+
+      if (isPenjualan) {
+        datasets.push({
+          label: "Pendapatan (Rp)",
+          data: sorted.map(d => parseFloat(d.total_penjualan || 0)),
+          backgroundColor: isBar ? colorGreen : "transparent",
+          borderColor: colorGreen, borderWidth: isBar ? 0 : 2,
+          fill: false, tension: 0.3, pointRadius: isBar ? 0 : 3, yAxisID: "y", borderRadius: isBar ? 4 : 0
+        });
+        datasets.push({
+          label: "Volume Transaksi",
+          data: sorted.map(d => parseInt(d.total_transaksi || 0)),
+          backgroundColor: isBar ? colorBlue : "transparent",
+          borderColor: colorBlue, borderWidth: isBar ? 0 : 2,
+          fill: false, tension: 0.3, pointRadius: isBar ? 0 : 3, yAxisID: "y2", borderRadius: isBar ? 4 : 0
+        });
+      } else {
+        datasets.push({
+          label: "Pendapatan (Rp)",
+          data: sorted.map(d => parseFloat(d.total_penjualan || 0)),
+          backgroundColor: isBar ? colorGreen : "transparent",
+          borderColor: colorGreen, borderWidth: isBar ? 0 : 2,
+          fill: false, tension: 0.3, pointRadius: isBar ? 0 : 3, borderRadius: isBar ? 4 : 0
+        });
+        datasets.push({
+          label: "Beban Modal (Rp)",
+          data: sorted.map(d => parseFloat(d.total_modal || 0)),
+          backgroundColor: isBar ? colorRed : "transparent",
+          borderColor: colorRed, borderWidth: isBar ? 0 : 2,
+          fill: false, tension: 0.3, pointRadius: isBar ? 0 : 3, borderRadius: isBar ? 4 : 0
+        });
+        datasets.push({
+          label: "Laba (Rp)",
+          data: sorted.map(d => parseFloat(d.laba || 0)),
+          backgroundColor: isBar ? colorPurple : "transparent",
+          borderColor: colorPurple, borderWidth: isBar ? 0 : 2,
+          fill: false, tension: 0.3, pointRadius: isBar ? 0 : 3, borderRadius: isBar ? 4 : 0
+        });
+      }
+
+      const fmtY = v => v >= 1e6 ? (v/1e6).toFixed(1)+"Jt" : v >= 1e3 ? (v/1e3).toFixed(0)+"Rb" : v;
+
+      const scales = {
+        x: { grid: { display: false }, ticks: { color: "#888", font: {size: 10}, maxRotation: 45 } },
+        y: { border: { display: false }, grid: { color: "#f0f0f0" }, ticks: { color: "#888", font: {size: 10}, callback: fmtY } },
+      };
+      if (isPenjualan) {
+        scales.y2 = { position: "right", border: { display: false }, grid: { drawOnChartArea: false }, ticks: { color: "#888", font: {size: 10} } };
+      }
+
+      chartInst = new Chart(ctx, {
+        type: isBar ? "bar" : "line",
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { position: "top", align: "end", labels: { color: "#666", font: {size: 11}, boxWidth: 10, usePointStyle: true } },
+            tooltip: { callbacks: { label: c => " " + c.dataset.label + ": Rp " + c.parsed.y.toLocaleString("id-ID") } }
+          },
+          scales
+        }
+      });
+    }
+
+    function switchChartType(type) {
+      chartType = type;
+      document.getElementById("btnBar").classList.toggle("active", type === "bar");
+      document.getElementById("btnLine").classList.toggle("active", type === "line");
+      if (detailData.length) renderChart(detailData, activeType);
+    }
+
+    // ── TABEL ──
+    function renderTable(data, type) {
+      const isHarian = type.includes("harian");
+      const isPenjualan = type.includes("penjualan");
+      const key = isHarian ? "tanggal" : "bulan";
+      const thead = document.querySelector("#mainTable thead");
+      const tbody = document.getElementById("mainTbody");
+
+      if (!data.length) {
+        thead.innerHTML = `<tr><th>Informasi Data</th></tr>`;
+        tbody.innerHTML = `<tr><td class="text-center text-muted py-5">Rekam transaksi belum tersedia.</td></tr>`;
+        return;
+      }
+
+      if (isPenjualan) {
+        thead.innerHTML = `<tr>
+          <th>No</th>
+          <th>${isHarian ? "Tanggal" : "Periode Bulan"}</th>
+          <th>Total Transaksi</th>
+          <th>Unit Terjual</th>
+          <th>Nominal Pendapatan</th>
+        </tr>`;
+        const gJual = data.reduce((a, d) => a + parseFloat(d.total_penjualan || 0), 0);
+        const gTrx = data.reduce((a, d) => a + parseInt(d.total_transaksi || 0), 0);
+        const gProd = data.reduce((a, d) => a + parseInt(d.total_produk || 0), 0);
+        
+        tbody.innerHTML = data.map((d, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td class="fw-bold">${d[key]}</td>
+            <td>${parseInt(d.total_transaksi || 0).toLocaleString("id-ID")}</td>
+            <td>${parseInt(d.total_produk || 0).toLocaleString("id-ID")} Unit</td>
+            <td class="text-hijau">Rp ${parseFloat(d.total_penjualan || 0).toLocaleString("id-ID")}</td>
+          </tr>`).join("") +
+          `<tr class="row-total">
+            <td colspan="2">TOTAL AKUMULASI</td>
+            <td>${gTrx.toLocaleString("id-ID")}</td>
+            <td>${gProd.toLocaleString("id-ID")} Unit</td>
+            <td class="text-hijau">Rp ${gJual.toLocaleString("id-ID")}</td>
+          </tr>`;
+      } else {
+        thead.innerHTML = `<tr>
+          <th>No</th>
+          <th>${isHarian ? "Tanggal" : "Periode Bulan"}</th>
+          <th>Pendapatan</th>
+          <th>Beban Modal</th>
+          <th>Selisih Laba</th>
+          <th>Status</th>
+        </tr>`;
+        const gJual = data.reduce((a, d) => a + parseFloat(d.total_penjualan || 0), 0);
+        const gModal = data.reduce((a, d) => a + parseFloat(d.total_modal || 0), 0);
+        const gLaba = data.reduce((a, d) => a + parseFloat(d.laba || 0), 0);
+        const rugiTotal = gLaba < 0;
+        
+        tbody.innerHTML = data.map((d, i) => {
+          const laba = parseFloat(d.laba || 0);
+          const untung = laba >= 0;
+          return `<tr>
+            <td>${i + 1}</td>
+            <td class="fw-bold">${d[key]}</td>
+            <td>Rp ${parseFloat(d.total_penjualan || 0).toLocaleString("id-ID")}</td>
+            <td>Rp ${parseFloat(d.total_modal || 0).toLocaleString("id-ID")}</td>
+            <td class="${untung ? "text-hijau" : "text-merah"}">Rp ${Math.abs(laba).toLocaleString("id-ID")}</td>
+            <td><span class="badge-status ${untung ? "badge-untung" : "badge-rugi"}">${untung ? "Untung" : "Rugi"}</span></td>
+          </tr>`;
+        }).join("") +
+          `<tr class="row-total">
+            <td colspan="2">TOTAL KESELURUHAN</td>
+            <td>Rp ${gJual.toLocaleString("id-ID")}</td>
+            <td>Rp ${gModal.toLocaleString("id-ID")}</td>
+            <td class="${!rugiTotal ? "text-hijau" : "text-merah"}">Rp ${Math.abs(gLaba).toLocaleString("id-ID")}</td>
+            <td><span class="badge-status ${!rugiTotal ? "badge-untung" : "badge-rugi"}">${!rugiTotal ? "Total Laba" : "Total Rugi"}</span></td>
+          </tr>`;
+      }
+    }
+
+    // ── HELPERS ──
+    function shortRp(v) {
+      if (v >= 1e9) return "Rp " + (v/1e9).toFixed(2).replace(".",",") + " M";
+      if (v >= 1e6) return "Rp " + (v/1e6).toFixed(2).replace(".",",") + " Jt";
+      return "Rp " + v.toLocaleString("id-ID");
+    }
+
+    loadOverview();
+  </script>
+</body>
+</html>

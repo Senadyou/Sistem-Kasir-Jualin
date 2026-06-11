@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Produk - Jualin</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+/* =========================================
+   GLOBAL & LAYOUT
+   ========================================= */
+body {
+  margin: 0;
+  background-color: #d4f5d1; /* Warna hijau muda asli dipertahankan */
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #1a2e1a;
+  min-height: 100vh;
+  display: flex;
+}
+
+/* =========================================
+   SIDEBAR (TEMA HIJAU JUALIN)
+   ========================================= */
+#sidebar {
+  width: 240px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  background: #1b5e20; /* Hijau gelap elegan */
+  border-right: 1px solid rgba(255,255,255,0.1);
+  padding: 24px 16px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; padding: 0 10px; }
+.sidebar-brand img { width: 36px; height: 36px; }
+.sidebar-brand span { font-size: 1.25rem; font-weight: 800; color: #a5d6a7; letter-spacing: 0.5px; }
+
+.sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+.sidebar-menu li a {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-radius: 12px;
+  color: rgba(255,255,255,0.7); text-decoration: none;
+  font-size: 0.95rem; font-weight: 600; transition: all 0.25s;
+  margin-bottom: 6px;
+}
+.sidebar-menu li a:hover, .sidebar-menu li a.active {
+  background: rgba(165,214,167,0.2); color: #fff;
+}
+
+/* =========================================
+   MAIN CONTENT & FULL LAYOUT
+   ========================================= */
+.main-wrapper {
+  margin-left: 240px;
+  width: calc(100% - 240px);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+}
+
+/* Header Atas */
+.top-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 18px 24px;
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(27, 94, 32, 0.05);
+  border: 1px solid rgba(255,255,255,0.5);
+  margin-bottom: 24px;
+}
+
+.header-title { margin: 0; font-weight: 800; font-size: 1.4rem; color: #1b5e20; }
+.header-subtitle { font-size: 0.85rem; color: #4a6741; margin-top: 4px; font-weight: 500; }
+
+.btn-tambah {
+  background: linear-gradient(135deg, #388e3c, #4CAF50);
+  color: #fff; font-weight: 700; border: none;
+  padding: 10px 22px; border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(76,175,80,0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-tambah:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(76,175,80,0.4); color: #fff; }
+
+/* Content Card (Membentang Penuh ke Bawah) */
+.content-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(27, 94, 32, 0.06);
+  flex-grow: 1; /* Membuat card ini mengisi ruang kosong di bawah */
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================================
+   SEARCH & FILTER BAR
+   ========================================= */
+.toolbar-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  position: relative;
+  width: 100%;
+  max-width: 350px;
+}
+.search-box input {
+  width: 100%;
+  background: #f9fdf9;
+  border: 1px solid #c8e6c9;
+  border-radius: 14px;
+  padding: 12px 16px 12px 42px;
+  font-size: 0.95rem;
+  transition: all 0.3s;
+}
+.search-box input:focus {
+  outline: none; border-color: #4CAF50;
+  box-shadow: 0 0 0 4px rgba(76,175,80,0.15);
+  background: #fff;
+}
+.search-box .icon {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  color: #81c784; font-size: 1.1rem;
+}
+
+/* =========================================
+   MODERN DESKTOP TABLE
+   ========================================= */
+.tabel-desktop { 
+  display: block; 
+  flex-grow: 1; 
+  overflow-y: auto; /* Scroll jika tabel kepanjangan, tapi card tetap full */
+}
+.table-modern {
+  width: 100%; border-collapse: separate; border-spacing: 0 10px; margin-top: -10px;
+}
+.table-modern thead th {
+  border: none; background: #ffffff; color: #888;
+  text-transform: uppercase; font-size: 0.75rem; font-weight: 700;
+  letter-spacing: 1px; padding: 12px 20px;
+  position: sticky; top: 0; z-index: 10; /* Header tetap saat di-scroll */
+}
+.table-modern tbody tr {
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid #f0f7f0;
+}
+.table-modern tbody tr:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(76,175,80,0.08);
+}
+.table-modern tbody td {
+  border: none; padding: 12px 20px; vertical-align: middle;
+  color: #333; font-size: 0.95rem;
+  border-top: 1px solid #f5fbf5;
+  border-bottom: 1px solid #f5fbf5;
+}
+.table-modern tbody td:first-child { border-left: 1px solid #f5fbf5; border-radius: 12px 0 0 12px; }
+.table-modern tbody td:last-child { border-right: 1px solid #f5fbf5; border-radius: 0 12px 12px 0; }
+
+.produk-img-modern {
+  width: 50px; height: 50px; object-fit: cover;
+  border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+.stok-badge {
+  background: #e8f5e9; color: #2e7d32; padding: 6px 12px;
+  border-radius: 20px; font-weight: 700; font-size: 0.8rem;
+}
+
+/* Tombol Aksi */
+.btn-action {
+  width: 34px; height: 34px; border-radius: 10px;
+  display: inline-flex; justify-content: center; align-items: center;
+  border: none; transition: 0.2s; font-size: 0.9rem; text-decoration: none;
+}
+.btn-action.edit { background: rgba(255, 152, 0, 0.1); color: #f57c00; }
+.btn-action.edit:hover { background: #f57c00; color: #fff; }
+.btn-action.del { background: rgba(244, 67, 54, 0.1); color: #f44336; }
+.btn-action.del:hover { background: #f44336; color: #fff; }
+
+/* =========================================
+   MOBILE VIEW (DEDICATED CARDS)
+   ========================================= */
+.mobile-cards-container { display: none; }
+
+@media (max-width: 768px) {
+  #sidebar { display: none; }
+  .main-wrapper { margin-left: 0; padding: 16px; padding-top: 80px; width: 100%; }
+  
+  /* Navbar Mobile */
+  .m-navbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: #1b5e20;
+    z-index: 99; padding: 14px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 4px 15px rgba(27, 94, 32, 0.15);
+  }
+  .m-navbar span { color: #fff; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;}
+  .m-navbar img { height: 28px; }
+  .btn-menu { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 6px 12px; border-radius: 8px; font-weight: 600; }
+
+  .top-header { flex-direction: column; align-items: stretch; gap: 16px; padding: 20px; background: rgba(255,255,255,0.85); margin-bottom: 16px; }
+  .btn-tambah { width: 100%; justify-content: center; }
+  .search-box { max-width: 100%; }
+  
+  .content-card { padding: 16px; background: transparent; box-shadow: none; }
+
+  /* Sembunyikan Tabel Desktop, Tampilkan Card Mobile */
+  .tabel-desktop { display: none; }
+  .mobile-cards-container {
+    display: flex; flex-direction: column; gap: 14px;
+    flex-grow: 1;
+  }
+
+  .m-card {
+    background: #fff; border-radius: 18px; padding: 16px;
+    box-shadow: 0 4px 15px rgba(27,94,32,0.06);
+    display: flex; flex-direction: column; gap: 14px;
+    border: none;
+  }
+  .m-card-top { display: flex; gap: 16px; align-items: center; }
+  .m-card-img {
+    width: 76px; height: 76px; object-fit: cover;
+    border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+  }
+  .m-card-info { flex: 1; }
+  .m-title { font-weight: 800; font-size: 1.1rem; color: #1b5e20; margin-bottom: 2px; line-height: 1.2;}
+  .m-id { font-size: 0.75rem; color: #888; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;}
+  .m-price { font-weight: 800; font-size: 1.15rem; color: #2e7d32; margin-top: 6px; }
+  
+  .m-card-details {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #f0f7f0; padding: 10px 14px; border-radius: 12px;
+  }
+  .m-detail-col { display: flex; flex-direction: column; }
+  .m-label { font-size: 0.7rem; color: #666; font-weight: 700; text-transform: uppercase; }
+  .m-val { font-size: 0.9rem; font-weight: 700; color: #1a2e1a; }
+  
+  .m-card-actions { display: flex; gap: 10px; }
+  .m-btn {
+    flex: 1; padding: 10px; border-radius: 12px; text-align: center;
+    font-size: 0.9rem; font-weight: 700; text-decoration: none; border: none;
+  }
+  .m-btn.edit { background: rgba(255, 152, 0, 0.1); color: #f57c00; }
+  .m-btn.del { background: rgba(244, 67, 54, 0.1); color: #f44336; }
+}
+</style>
+</head>
+<body>
+
+  <!-- Sidebar Desktop -->
+  <div id="sidebar" class="d-none d-md-flex">
+    <div class="sidebar-brand">
+      <img src="../assets/img/logo2.png" alt="Logo">
+      <span>Jualin</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="produk.html" class="active">Data Produk</a></li>
+      <li><a href="user.html">Manajemen User</a></li>
+      <li><a href="laporan.html">Laporan</a></li>
+      <li><a href="bahan_baku.html"> Bahan Baku</a></li>
+      <li><a href="resep_produk.html"> Resep Produk</a></li>
+    </ul>
+    <div style="margin-top: auto;">
+      <a href="#" onclick="logout()" class="btn btn-danger w-100" style="background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.2); color: #ff6b6b; font-weight: 700; border-radius: 12px; padding: 10px;">🚪 Keluar Akun</a>
+    </div>
+  </div>
+
+  <!-- Navbar Mobile -->
+  <div class="m-navbar d-md-none">
+    <span><img src="../assets/img/logo2.png" alt="Logo"> Jualin Admin</span>
+    <button class="btn-menu" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">☰ Menu</button>
+  </div>
+
+  <!-- Offcanvas Mobile -->
+  <div class="offcanvas offcanvas-start" id="mobileSidebar" style="background:#1b5e20;">
+    <div class="offcanvas-header border-bottom border-success">
+      <h5 class="offcanvas-title text-white fw-bold d-flex align-items-center gap-2">
+        <img src="../assets/img/logo2.png" width="28"> Jualin
+      </h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column">
+      <ul class="sidebar-menu mt-2 flex-grow-1">
+        <li><a href="produk.html" class="active">Data Produk</a></li>
+        <li><a href="user.html"> Manajemen User</a></li>
+        <li><a href="laporan.html"> Laporan</a></li>
+        <li><a href="bahan_baku.html"> Bahan Baku</a></li>
+        <li><a href="resep_produk.html"> Resep Produk</a></li>
+      </ul>
+      <a href="#" onclick="logout()" class="btn btn-danger w-100 mt-4" style="background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.2); color: #ff6b6b; font-weight: 700; border-radius: 12px; padding: 10px;">🚪 Keluar Akun</a>
+    </div>
+  </div>
+  
+  <!-- Main Content Wrapper (Flex Layout for Full Height) -->
+  <div class="main-wrapper">
+    
+    <!-- Top Header Glassmorphism -->
+    <div class="top-header">
+      <div>
+        <h1 class="header-title">Katalog Produk</h1>
+        <div class="header-subtitle">Kelola harga, stok, dan daftar produk toko Anda</div>
+      </div>
+      <a href="tambah_produk.html" class="btn-tambah">
+        <span style="font-size: 1.2rem; line-height: 0;">+</span> Tambah Produk Baru
+      </a>
+    </div>
+
+    <!-- Content Card (Fills remaining space) -->
+    <div class="content-card">
+      <!-- Toolbar: Search -->
+      <div class="toolbar-section">
+        <div class="search-box">
+          <span class="icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Cari nama produk atau ID...">
+        </div>
+        <div class="text-muted fw-bold" style="font-size: 0.85rem;" id="totalCounter">Memuat...</div>
+      </div>
+
+      <!-- TABEL DESKTOP -->
+      <div class="tabel-desktop">
+        <table class="table-modern">
+          <thead>
+            <tr>
+              <th>Kode</th>
+              <th>Visual</th>
+              <th>Nama Produk</th>
+              <th>Harga Modal</th>
+              <th>Harga Jual</th>
+              <th class="text-center">Stok</th>
+              <th class="text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="produkTable">
+            <tr>
+              <td colspan="7" class="text-center py-5 text-muted fw-bold">⏳ Memuat data produk...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- KARTU MOBILE -->
+      <div class="mobile-cards-container" id="mobileProdukList">
+        <!-- Injected via JS -->
+      </div>
+    </div> <!-- /content-card -->
+
+  </div> <!-- /main-wrapper -->
+
+  <!-- Modal Hapus -->
+  <div class="modal fade" id="hapusModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+        <div class="modal-body text-center p-4">
+          <div style="font-size: 3.5rem; margin-bottom: 10px;">🗑️</div>
+          <h5 class="fw-bold mb-3" style="color: #c62828;">Hapus Produk?</h5>
+          <p class="text-muted mb-4">Apakah Anda yakin ingin menghapus produk ini? Data yang dihapus tidak dapat dikembalikan.</p>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-light w-50 fw-bold" style="border-radius: 12px; background: #f0f7f0; color: #4a6741;" data-bs-dismiss="modal">Batal</button>
+            <button type="button" class="btn btn-danger w-50 fw-bold" style="border-radius: 12px; background: #e53935; border: none;" id="btnConfirmHapus">Ya, Hapus</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+    let allProduk = [];
+    let kodeHapus = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const nama = sessionStorage.getItem("admin_nama");
+      if (!nama) {
+        window.location.href = "../login.html";
+      }
+    });
+
+    function logout() {
+      sessionStorage.removeItem("admin_id");
+      sessionStorage.removeItem("admin_nama");
+      sessionStorage.removeItem("admin_role");
+      sessionStorage.removeItem("admin_id_toko");
+      sessionStorage.removeItem("admin_token");
+      window.location.href = "../login.html";
+    }
+
+    async function loadProduk() {
+      try {
+        const id_toko = sessionStorage.getItem("admin_id_toko");
+        const url = id_toko
+          ? `../../Backend/produk/lihat_produk.php?id_toko=${id_toko}`
+          : `../../Backend/produk/lihat_produk.php`;
+        const res = await fetch(url);
+        const data = await res.json();
+        allProduk = data;
+        renderTable(data);
+      } catch (error) {
+        document.getElementById("produkTable").innerHTML = `
+          <tr><td colspan="7" class="text-center text-danger py-5 fw-bold">⚠️ Gagal memuat data produk</td></tr>`;
+        document.getElementById("mobileProdukList").innerHTML = `
+          <div class="text-center text-danger py-4 fw-bold">⚠️ Gagal memuat data produk</div>`;
+      }
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById("produkTable");
+      const mobileList = document.getElementById("mobileProdukList");
+      
+      tbody.innerHTML = "";
+      mobileList.innerHTML = "";
+      document.getElementById("totalCounter").innerText = `Total: ${data.length} Produk`;
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted fw-bold">📭 Tidak ada produk ditemukan</td></tr>`;
+        mobileList.innerHTML = `<div class="text-center py-5 text-muted fw-bold">📭 Tidak ada produk ditemukan</div>`;
+        return;
+      }
+
+      data.forEach(p => {
+        const imgPath = p.GAMBAR ? `../../Backend/uploads/produk/${p.GAMBAR}` : "../assets/img/logo.png";
+        const hModal = parseInt(p.HARGA_MODAL).toLocaleString("id-ID");
+        const hJual = parseInt(p.HARGA_JUAL).toLocaleString("id-ID");
+
+        // --- RENDER DESKTOP ROW ---
+        tbody.innerHTML += `
+          <tr>
+            <td><span class="text-muted fw-bold">#${p.KODE_PRODUK}</span></td>
+            <td><img src="${imgPath}" alt="${p.NAMA_PRODUK}" class="produk-img-modern" onerror="this.src='../assets/img/logo.png'"></td>
+            <td>
+              <div class="fw-bold" style="color: #1b5e20; font-size: 1.05rem;">${p.NAMA_PRODUK}</div>
+              <div style="font-size: 0.8rem; color: #888;">${p.KATEGORI || '-'}</div>
+            </td>
+            <td>Rp ${hModal}</td>
+            <td><span class="fw-bold text-success">Rp ${hJual}</span></td>
+            <td class="text-center"><span class="stok-badge">${p.STOK}</span></td>
+            <td>
+              <div class="d-flex gap-2 justify-content-center">
+                <a href="edit_produk.html?id=${p.KODE_PRODUK}" class="btn-action edit" title="Edit">✏️</a>
+                <button class="btn-action del" onclick="showHapusModal(${p.KODE_PRODUK})" title="Hapus">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+
+        // --- RENDER MOBILE CARD ---
+        mobileList.innerHTML += `
+          <div class="m-card">
+            <div class="m-card-top">
+              <img src="${imgPath}" alt="${p.NAMA_PRODUK}" class="m-card-img" onerror="this.src='../assets/img/logo.png'">
+              <div class="m-card-info">
+                <div class="m-id">#${p.KODE_PRODUK} &bull; ${p.KATEGORI || '-'}</div>
+                <div class="m-title">${p.NAMA_PRODUK}</div>
+                <div class="m-price">Rp ${hJual}</div>
+              </div>
+            </div>
+            <div class="m-card-details">
+              <div class="m-detail-col">
+                <span class="m-label">Harga Modal</span>
+                <span class="m-val">Rp ${hModal}</span>
+              </div>
+              <div class="m-detail-col text-end">
+                <span class="m-label">Stok</span>
+                <span class="m-val" style="color:#2e7d32;">📦 ${p.STOK}</span>
+              </div>
+            </div>
+            <div class="m-card-actions">
+              <a href="edit_produk.html?id=${p.KODE_PRODUK}" class="m-btn edit">✏️ Edit</a>
+              <button class="m-btn del" onclick="showHapusModal(${p.KODE_PRODUK})">🗑️ Hapus</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function showHapusModal(kode) {
+      kodeHapus = kode;
+      const modal = new bootstrap.Modal(document.getElementById("hapusModal"));
+      modal.show();
+    }
+
+    document.getElementById("btnConfirmHapus").addEventListener("click", async () => {
+      if (!kodeHapus) return;
+      try {
+        const id_toko = sessionStorage.getItem("admin_id_toko");
+        const res = await fetch("../../Backend/produk/hapus_produk.php", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ KODE_PRODUK: kodeHapus, id_toko: id_toko })
+        });
+        const result = await res.json();
+        if (result.status) {
+          Swal.fire({title: "Terhapus!", text: "Produk berhasil dihapus", icon: "success", timer: 1500, showConfirmButton: false});
+          loadProduk();
+        } else {
+          Swal.fire("Gagal!", result.message || "Terjadi kesalahan", "error");
+        }
+      } catch {
+        Swal.fire("Error!", "⚠️ Tidak bisa terhubung ke server", "error");
+      }
+      bootstrap.Modal.getInstance(document.getElementById("hapusModal")).hide();
+    });
+
+    document.getElementById("searchInput").addEventListener("input", function() {
+      const keyword = this.value.toLowerCase();
+      const filtered = allProduk.filter(p => 
+        p.NAMA_PRODUK.toLowerCase().includes(keyword) || 
+        p.KODE_PRODUK.toString().includes(keyword)
+      );
+      renderTable(filtered);
+    });
+
+    loadProduk();
+  </script>
+</body>
+</html>
