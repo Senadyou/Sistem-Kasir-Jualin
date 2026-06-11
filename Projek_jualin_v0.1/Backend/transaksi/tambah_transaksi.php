@@ -30,7 +30,8 @@ $kode           = "TRX" . date("YmdHis") . rand(100, 999);
 $totalTransaksi = 0;
 
 foreach ($items as $item) {
-    $totalTransaksi += intval($item['harga']) * intval($item['jumlah']);
+    // Pastikan penjumlahan total mengizinkan nilai desimal untuk pajak
+    $totalTransaksi += floatval($item['harga']) * intval($item['jumlah']);
 }
 
 $conn->begin_transaction(); // transaksi atomik
@@ -46,22 +47,50 @@ try {
     }
     $stmtHeader->close();
 
-    // 2. Siapkan statement INSERT items
+    // 2. Siapkan statement INSERT items (Untuk Produk Normal)
     $stmtItem = $conn->prepare(
         "INSERT INTO transaksi_items
             (KODE_TRANSAKSI, KODE_PRODUK, NAMA_PRODUK, HARGA_MODAL, JUMLAH, HARGA_JUAL)
          VALUES (?, ?, ?, ?, ?, ?)"
     );
 
-    // 3. Siapkan statement UPDATE stok (PENTING: Ini yang sebelumnya kurang)
+    // 3. Siapkan statement UPDATE stok
     $stmtUpdateStok = $conn->prepare(
         "UPDATE produk SET STOK = STOK - ? WHERE KODE_PRODUK = ? AND id_toko = ?"
     );
 
     foreach ($items as $item) {
-        $id_produk  = intval($item['id']);
+        $raw_id     = $item['id'] ?? null;
         $jumlah     = intval($item['jumlah']);
-        $harga_jual = intval($item['harga']); 
+        $harga_jual = floatval($item['harga']); 
+
+        // ==========================================
+        // BYPASS UNTUK VIRTUAL ITEM (CONTOH: PAJAK PB1)
+        // ==========================================
+        if ($raw_id === null || $raw_id === '') {
+            $nama_produk = $item['nama']; // Mengambil nama dari request (Pajak Restoran PB1...)
+            $harga_modal = 0; // Pajak tidak memotong modal
+            
+            // Query eksplisit menggunakan NULL untuk KODE_PRODUK agar valid di MariaDB/MySQL
+            $stmtVirtual = $conn->prepare(
+                "INSERT INTO transaksi_items (KODE_TRANSAKSI, KODE_PRODUK, NAMA_PRODUK, HARGA_MODAL, JUMLAH, HARGA_JUAL)
+                 VALUES (?, NULL, ?, ?, ?, ?)"
+            );
+            $stmtVirtual->bind_param("ssdid", $kode, $nama_produk, $harga_modal, $jumlah, $harga_jual);
+            
+            if (!$stmtVirtual->execute()) {
+                throw new Exception("Gagal simpan item virtual: " . $stmtVirtual->error);
+            }
+            $stmtVirtual->close();
+            
+            // Lanjutkan ke item berikutnya tanpa mengecek/memotong stok
+            continue;
+        }
+
+        // ==========================================
+        // ALUR NORMAL UNTUK PRODUK FISIK
+        // ==========================================
+        $id_produk = intval($raw_id);
 
         // Ambil nama & harga modal; pastikan produk milik toko ini
         $q = $conn->prepare(
@@ -77,7 +106,7 @@ try {
             throw new Exception("Produk ID $id_produk tidak ditemukan atau bukan milik toko ini");
         }
         
-        // Pengecekan apakah stok cukup (Opsional tapi sangat disarankan)
+        // Pengecekan apakah stok cukup
         if ($res['STOK'] < $jumlah) {
              throw new Exception("Stok untuk " . $res['NAMA_PRODUK'] . " tidak mencukupi. Sisa stok: " . $res['STOK']);
         }
